@@ -1,55 +1,69 @@
-# Eulerian Multigrid-Inspired FD8 Hydraulic Erosion
+# Eulerian Hydraulic Erosion with Binary Search Water Redistribution
 
-A high-performance WebGPU-based simulation of hydraulic erosion using Eulerian multigrid-inspired methods with FD8 multi-directional flow routing for realistic terrain generation. 
-[**Live Demo**](https://metarapi.github.io/multigrid-eulerian-erosion/)
+A high-performance WebGPU-based hydraulic erosion simulation using FD8 multi-directional flow routing and GPU compute shaders. This implementation combines flowing water dynamics with a novel Margolus neighborhood binary search approach for stable water equilibration.
 
-## Technical Overview
+Live demo: https://metarapi.github.io/eulerian-erosion/
 
-### Hydraulic Erosion Simulation
+## Key Features
 
-The core simulation implements a **multigrid-inspired approach** with FD8 multi-directional flow routing for accurate water flow and sediment transport:
+- **FD8 Flow Routing**: Multi-directional water flow using adaptive slope exponents that respond to terrain curvature - water spreads on hillslopes and concentrates in valleys
+- **Dual Water System**: Separates flowing water (erosion and transport) from still water (storage and equilibration) 
+- **Binary Search Equilibration**: Uses Margolus neighborhoods (2x2 blocks) with binary search to find water level equilibrium, ensuring mass conservation
+- **Moisture-Aware Thermal Erosion**: Thermal erosion that adapts based on water presence - wet slopes are more stable than dry ones
+- **Domain-Warped Noise**: Fast GPU-generated terrain using fractal Brownian motion with domain warping for realistic initial landscapes
 
-- **Multigrid Resolution:** Four grid levels (L1–L4) simulate erosion processes at different scales, from fine detail to broad landscape features
-- **FD8 Flow Routing:** Multi-directional water flow algorithm that distributes flow across all 8 neighboring cells (unlike D8 single-direction routing), enabling more realistic water distribution patterns
-- **Coupled Water-Sediment Dynamics:** Models evaporation, deposition, erosion capacity, and momentum transfer between water and terrain
-- **Real-time GPU Acceleration:** All simulation steps run on GPU using WebGPU compute shaders for interactive performance
+## How It Works
 
-### Terrain Generation Pipeline
+### Water Flow (FD8)
+Water flows downhill using an 8-direction scheme where flow distribution adapts to terrain shape:
+- **Ridges/slopes**: Lower exponent spreads water broadly
+- **Valleys**: Higher exponent concentrates flow into channels
+- Uses terrain curvature (Laplacian) to automatically adjust flow behavior
 
-1. **Initial Heightfield:** Starting terrain mesh or procedural generation
-2. **Water Simulation:** Precipitation, flow accumulation, and velocity calculations using FD8 multi-directional flow routing
-3. **Erosion Process:** Sediment pickup based on flow velocity and carrying capacity
-4. **Deposition:** Sediment settling in low-velocity areas
-5. **Terrain Update:** Height modification based on erosion/deposition balance
+### Water Types
+- **Flowing Water**: Actively erodes terrain, carries sediment, follows gravity
+- **Still Water**: Pools in low areas, provides moisture for thermal erosion, equilibrates through binary search
 
-### Visualization
+### Erosion & Deposition
+- Flowing water picks up sediment based on flow velocity and terrain slope
+- Excess sediment deposits when water slows or pools
+- Thermal erosion loosens material on steep slopes, especially when dry
 
-- **3D Terrain Rendering:** Babylon.js with WebGPU for interactive terrain visualization
-- **Multi-layer Display:** Separate visualization of height, flowing water, still water, and sediment at each grid level
-- **Advanced Coloring:** Custom lookup tables (LUTs) generated using Oklab color space interpolation for perceptually uniform terrain and water colors
+### Water Redistribution System
+The simulation uses a two-stage approach for water management:
 
-### Color Science
+**Still Water Redistribution**: During erosion iterations, still water flows between neighboring cells based on height differences, creating local equilibration while preserving the overall flow dynamics.
 
-Terrain and water colors use **Oklab color interpolation** for smooth, perceptually accurate gradients:
-- Python-based LUT generation (`src/python/LUTMaker.ipynb`) with colour-science library
-- Runtime texture generation from pre-computed LUTs
-- Support for custom color themes and palettes
+**Final Margolus Equilibration**: After all erosion iterations, a separate binary search process runs on 2x2 Margolus neighborhoods to smooth out any remaining water distribution noise:
+- Divides terrain into overlapping 2x2 blocks with different offset patterns
+- Binary search finds the exact water level that equalizes pressure across each block
+- Runs multiple passes with checkerboard patterns to ensure global equilibration
+- Preserves total water mass while creating realistic ponding behavior
+
+## Pipeline Overview
+
+1. **Generate Terrain**: Domain-warped fBm noise creates initial heightfield
+2. **Erosion Loop** (per iteration):
+   - Hydraulic erosion with FD8 flow routing
+   - Still water redistribution for local equilibration  
+   - Thermal erosion based on moisture state
+3. **Final Equilibration**: Multiple Margolus passes with binary search for stable water levels
+4. **Visualization**: Extract final terrain and water data for rendering
 
 ## Getting Started
 
-### Prerequisites
+**Prerequisites**
 - Node.js (v18+)
-- Modern browser with [WebGPU support](https://webgpu.io/)
+- Browser with WebGPU support
 
-### Quick Start
+**Quick Start**
 ```sh
 npm install
 npm run dev
 ```
+Visit: http://localhost:3000
 
-Visit [http://localhost:3006](http://localhost:3006)
-
-### Build for Production
+**Build for Production**
 ```sh
 npm run build
 npm run preview
@@ -57,47 +71,35 @@ npm run preview
 
 ## Key Parameters
 
-- **Erosion Iterations:** Number of simulation steps per frame
-- **Spawn Cycles:** Water injection frequency
-- **Deposition Rate:** Sediment settling speed
-- **Evaporation Rate:** Water loss per iteration
-- **Water Height Factor:** Scaling for water visualization
+- **Resolution**: Grid size (sizeX, sizeY)
+- **Iterations**: Number of erosion cycles
+- **Water Spawning**: spawn_cycles, spawn_density
+- **Flow Dynamics**: deposition_rate, evap_rate, flow_depth_weight
+- **Thermal**: moisture-dependent talus angles
+- **Equilibration**: margolusPasses, binary search iterations
+- **Terrain**: noise octaves, zoom, persistence, domain warping
 
-## Architecture
+## Core Shaders
 
-The simulation uses a modular WebGPU pipeline with separate compute shaders for:
-- Water flow calculations (FD8 multi-directional flow routing)
-- Erosion and deposition
-- Multigrid-inspired interpolation and restriction
-- Texture generation and coloring
+- **fBmSimplexNoise.wgsl**: Domain-warped fractal terrain generation
+- **erosionPingPongFD8.wgsl**: Adaptive flow routing with erosion/deposition
+- **stillWaterRedistribution.wgsl**: Local water redistribution during erosion iterations
+- **thermalErosion.wgsl**: Moisture-aware slope stability and material transport
+- **margolusBinaryWaterRedistribution.wgsl**: Final binary search water leveling in 2x2 blocks
 
-Interactive controls built with Alpine.js allow real-time parameter adjustment during simulation.
+## Technical Approach
+
+The simulation runs entirely on GPU using ping-pong textures for efficient memory access. The two-stage water system allows for realistic flow dynamics during erosion while ensuring final water distributions are smooth and physically plausible. The Margolus binary search technique is particularly effective at eliminating water distribution artifacts while maintaining strict mass conservation.
 
 ## Dependencies
 
 - `@babylonjs/core` - 3D rendering engine
-- `alpinejs` - Reactive UI framework
+- `alpinejs` - Reactive UI framework  
 - `flyonui` + `tailwindcss` - Styling and components
 - `vite` + `vite-plugin-glsl` - Build system with shader support
-
-## Attribution & References
-
-This project uses or adapts code under the MIT License from the following sources:
-
-- **PCG Random Number Generation**  
-  [Melissa E. O’Neill, pcg-random.org](https://www.pcg-random.org/)  
-  MIT License. © Melissa E. O’Neill
-
-- **Simplex Noise Functions**  
-  MIT License. © Ian McEwan, Stefan Gustavson, Munrocket
-
-- **Fractal Brownian Motion (FBM)**  
-  MIT License. © Inigo Quilez, Munrocket
 
 ## License
 
 MIT
 
 ## Author
-
-[metarapi](https://github.com/metarapi)
