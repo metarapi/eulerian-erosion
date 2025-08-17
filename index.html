@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" class="h-full">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Eulerian Hydraulic Erosion</title>
+</head>
+
+<body class="flex flex-col h-full bg-woodsmoke-950">
+  <!-- Navbar -->
+  <nav class="bg-woodsmoke-900 shadow-lg p-4 flex items-center border-b border-woodsmoke-800">
+    <button type="button" class="btn btn-text max-sm:btn-square sm:hidden mr-4 text-shark-200 hover:text-shark-100"
+      aria-haspopup="dialog" aria-expanded="false" aria-controls="default-sidebar" data-overlay="#default-sidebar">
+      <span class="ti ti-menu-2 size-5"></span>
+    </button>
+    <div class="flex-1 flex justify-center">
+      <div class="relative flex items-center justify-center">
+        <div class="text-xl font-bold text-shark-100">Eulerian FD8 Hydraulic Erosion</div>
+        <div class="absolute translate-x-40 translate-y-4 text-xs font-bold text-brink-pink-400 -rotate-6 motion-preset-pulse-sm motion-duration-2000 pointer-events-none select-none whitespace-nowrap">
+          With thermal erosion!
+        </div>
+      </div>
+    </div>
+    <div>
+      <a href="https://github.com/metarapi/multigrid-eulerian-erosion"
+        class="text-sharklite-300 hover:text-white transition-colors p-2" target="_blank" rel="noopener noreferrer">
+        <i class="bi bi-github text-2xl"></i>
+      </a>
+    </div>
+  </nav>
+
+  <div class="flex flex-1 overflow-hidden">
+    <!-- Sidebar -->
+    <aside id="default-sidebar"
+      class="overlay [--auto-close:sm] sm:shadow-none overlay-open:translate-x-0 drawer drawer-start hidden max-w-80 sm:relative sm:z-0 sm:flex sm:translate-x-0 bg-woodsmoke-900 border-r border-woodsmoke-800 p-1"
+      role="dialog" tabindex="-1">
+
+      <!-- Fixed Buttons -->
+      <div class="sticky top-0 z-10 bg-woodsmoke-900 p-1">
+        <div class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700">
+          <div class="flex flex-row gap-2 p-0.5">
+            <button type="button" id="runSimulationBtn"
+              class="btn flex-1 border-2 border-feijoa-300 text-feijoa-300 bg-transparent hover:bg-feijoa-300 hover:text-woodsmoke-950 p-1 text-lg font-ultralight rounded shadow">
+              <span id="runSimulationIcon" class="ti ti-player-play mr-2"></span>
+              Run
+            </button>
+            <button type="button" id="resetSimulationBtn"
+              class="btn flex-1 border-2 border-goldenrod-300 text-goldenrod-300 bg-transparent hover:bg-goldenrod-300 hover:text-woodsmoke-950 text-lg font-ultralight rounded shadow">
+              <span class="ti ti-refresh mr-2"></span>
+              Reset
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scrollable Controls -->
+      <div class="drawer-body px-1 pt-1 overflow-y-auto max-h-[calc(100vh-4rem)]">
+        <ul class="menu p-0 space-y-2">
+
+          <!-- Map Size -->
+          <div x-data="{ mapSize: 33 }"
+               class="bg-woodsmoke-800 pt-2 pb-1 px-2 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700">
+            <div class="flex flex-row justify-between items-center">
+              <span class="label-text text-lg font-extralight text-shark-100">Map Size</span>
+              <div>
+                <span x-show="mapSize == 0" class="text-sm text-shark-400">256×256</span>
+                <span x-show="mapSize == 33" class="text-sm text-shark-400">512×512</span>
+                <span x-show="mapSize == 66" class="text-sm text-shark-400">1024×1024</span>
+                <span x-show="mapSize == 99" class="text-sm text-shark-400">2048×2048</span>
+              </div>
+            </div>
+            <input id="mapSizeInput" type="range" min="0" max="99" value="33" step="33" x-model="mapSize"
+              class="range px-1 [--range-color:theme(colors.spray.400)]" />
+            <div class="w-full flex justify-between text-xs px-1.5 text-shark-400">
+              <span><i class="text-shark-400 bi bi-chevron-up"></i></span>
+              <span><i class="text-shark-400 bi bi-chevron-up"></i></span>
+              <span><i class="text-shark-400 bi bi-chevron-up"></i></span>
+              <span><i class="text-shark-400 bi bi-chevron-up"></i></span>
+            </div>
+            <div class="-translate-y-2 w-full flex justify-between text-xs px-1.5 text-shark-400">
+              <span><i class="text-woodsmoke-800 bi bi-chevron-up"></i></span>
+              <span><i class="text-woodsmoke-800 bi bi-chevron-up"></i></span>
+              <span><i class="text-woodsmoke-800 bi bi-chevron-up"></i></span>
+              <span><i class="text-brink-pink-300 bi bi-exclamation-square"></i></span>
+            </div>
+          </div>
+
+          <!-- Iterations -->
+          <div class="bg-woodsmoke-800 p-2 rounded-xl shadow-sm border border-woodsmoke-700">
+            <div class="flex flex-row items-center justify-between">
+              <span class="label-text text-lg font-ultralight text-shark-100">Erosion Iterations</span>
+              <button type="button"
+                      class="text-sharklite-400 hover:text-white transition-colors p-2"
+                      data-tooltip="iterations"
+                      aria-label="About iterations">
+                <i class="text-sm bi bi-info-square"></i>
+              </button>
+            </div>
+            <input id="iterations" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]"
+              min="1" max="4096" value="1024" />
+            <div class="text-xs text-shark-400 text-right">
+              Value: <span id="iterationsValue">1024</span>
+            </div>
+          </div>
+
+          <!-- Hydraulic Erosion -->
+          <div x-data="{ open: true }" class="bg-woodsmoke-800 p-2 rounded-xl shadow-sm border border-woodsmoke-700 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="label-text text-lg font-ultralight text-shark-100">Hydraulic</span>
+              <label class="flex items-center gap-2 text-sm text-shark-300">
+                <span>Show</span>
+                <input type="checkbox" class="switch switch-outline checked:text-spray-500 checked:border-spray-400 checked:bg-woodsmoke-800 hover:checked:bg-woodsmoke-800" x-model="open" />
+              </label>
+            </div>
+            <div x-show="open" class="space-y-2">
+              <div x-data="{ spawnCycles: 128 }"
+                class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-10%] motion-opacity-in-[0%] motion-duration-75 motion-delay-50 motion-ease-out">
+                <!-- Spawn Cycles header: replace inline tooltip with a button -->
+                <div class="flex flex-row items-center justify-between">
+                  <span class="label-text text-base font-ultralight block mb-2 text-shark-100">Spawn Cycles</span>
+                  <button type="button"
+                          class="text-sharklite-400 hover:text-white transition-colors p-2"
+                          data-tooltip="spawnCycles"
+                          aria-label="About spawn cycles">
+                    <i class="text-sm bi bi-info-square"></i>
+                  </button>
+                </div>
+                <input id="spawnCycles" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]" min="1" max="4096" x-model="spawnCycles" />
+                <div class="text-xs text-shark-400 text-right">
+                  Value: <span x-text="spawnCycles"></span>
+                </div>
+              </div>
+              <div x-data="{ depositionRate: 0.1 }"
+                class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-20%] motion-opacity-in-[0%] motion-duration-75 motion-delay-100 motion-ease-out">
+                <!-- Deposition Rate -->
+                <div class="flex flex-row items-center justify-between">
+                  <span class="label-text text-base font-ultralight block mb-2 text-shark-100">Deposition Rate</span>
+                  <button type="button"
+                          class="text-sharklite-400 hover:text-white transition-colors p-2"
+                          data-tooltip="depositionRate"
+                          aria-label="About deposition rate">
+                    <i class="text-sm bi bi-info-square"></i>
+                  </button>
+                </div>
+                <input id="depositionRate" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]" min="0.001" max="1.0" step="0.001" x-model="depositionRate" />
+                <div class="text-xs text-shark-400 text-right">
+                  Value: <span x-text="Number(depositionRate).toFixed(3)"></span>
+                </div>
+              </div>
+              <div x-data="{ evapRate: 0.001 }"
+                class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-30%] motion-opacity-in-[0%] motion-duration-75 motion-delay-150 motion-ease-out">
+                <div class="flex flex-row items-center justify-between">
+                  <span class="label-text text-base font-ultralight block mb-2 text-shark-100">Evaporation Rate</span>
+                  <button type="button"
+                          class="text-sharklite-400 hover:text-white transition-colors p-2"
+                          data-tooltip="evapRate"
+                          aria-label="About evaporation rate">
+                    <i class="text-sm bi bi-info-square"></i>
+                  </button>
+                </div>
+                <input id="evapRate" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]" min="0" max="0.01" step="0.0001" x-model="evapRate" />
+                <div class="text-xs text-shark-400 text-right">
+                  Value: <span x-text="Number(evapRate).toFixed(4)"></span>
+                </div>
+              </div>
+              <div x-data="{ waterHeightFactor: 0.001 }"
+                class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-40%] motion-opacity-in-[0%] motion-duration-75 motion-delay-200 motion-ease-out">
+                <div class="flex flex-row items-center justify-between">
+                  <span class="label-text text-base font-ultralight block mb-2 text-shark-100">Water Height Factor</span>
+                  <button type="button"
+                          class="text-sharklite-400 hover:text-white transition-colors p-2"
+                          data-tooltip="waterHeightFactor"
+                          aria-label="About water height factor">
+                    <i class="text-sm bi bi-info-square"></i>
+                  </button>
+                </div>
+                <input id="waterHeightFactor" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]" min="0" max="0.01" step="0.0001" x-model="waterHeightFactor" />
+                <div class="text-xs text-shark-400 text-right">
+                  Value: <span x-text="Number(waterHeightFactor).toFixed(4)"></span>
+                </div>
+              </div>
+              <div x-data="{ stillWaterRelaxation: 0.3 }"
+                class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-50%] motion-opacity-in-[0%] motion-duration-75 motion-delay-250 motion-ease-out">
+                <div class="flex flex-row items-center justify-between">
+                  <span class="label-text text-base font-ultralight block mb-2 text-shark-100">Still Water Relaxation</span>
+                  <button type="button"
+                          class="text-sharklite-400 hover:text-white transition-colors p-2"
+                          data-tooltip="stillWaterRelaxation"
+                          aria-label="About still water relaxation">
+                    <i class="text-sm bi bi-info-square"></i>
+                  </button>
+                </div>
+                <input id="stillWaterRelaxation" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]" min="0" max="1" step="0.01" x-model="stillWaterRelaxation" />
+                <div class="text-xs text-shark-400 text-right">
+                  Value: <span x-text="Number(stillWaterRelaxation).toFixed(2)"></span>
+                </div>
+              </div>
+              <div x-data="{ spawnDensity: 0.05 }"
+                class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-60%] motion-opacity-in-[0%] motion-duration-75 motion-delay-300 motion-ease-out">
+                <div class="flex flex-row items-center justify-between">
+                  <span class="label-text text-base font-ultralight block mb-2 text-shark-100">Spawn Density</span>
+                  <button type="button"
+                          class="text-sharklite-400 hover:text-white transition-colors p-2"
+                          data-tooltip="spawnDensity"
+                          aria-label="About spawn density">
+                    <i class="text-sm bi bi-info-square"></i>
+                  </button>
+                </div>
+                <input id="spawnDensity" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]" min="0.01"
+                  max="1" step="0.01" x-model="spawnDensity" />
+                <div class="text-xs text-shark-400 text-right">
+                  Value: <span x-text="Number(spawnDensity).toFixed(2)"></span>
+                </div>
+              </div>
+              <div x-data="{ flowDepthWeight: 0.25 }"
+                class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-70%] motion-opacity-in-[0%] motion-duration-75 motion-delay-350 motion-ease-out">
+                <div class="flex flex-row items-center justify-between">
+                  <span class="label-text text-base font-ultralight block mb-2 text-shark-100">Flow Depth Weight</span>
+                  <button type="button"
+                          class="text-sharklite-400 hover:text-white transition-colors p-2"
+                          data-tooltip="flowDepthWeight"
+                          aria-label="About flow depth weight">
+                    <i class="text-sm bi bi-info-square"></i>
+                  </button>
+                </div>
+                <input id="flowDepthWeight" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]" min="0" max="1" step="0.01" x-model="flowDepthWeight" />
+                <div class="text-xs text-shark-400 text-right">
+                  Value: <span x-text="Number(flowDepthWeight).toFixed(2)"></span>
+                </div>
+              </div>
+              <div x-data="{ shearShallow: 0.0000005 }"
+                class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-80%] motion-opacity-in-[0%] motion-duration-75 motion-delay-400 motion-ease-out">
+                <div class="flex flex-row items-center justify-between">
+                  <span class="label-text text-base font-ultralight block mb-2 text-shark-100">Shear (Shallow)</span>
+                  <button type="button"
+                          class="text-sharklite-400 hover:text-white transition-colors p-2"
+                          data-tooltip="shearShallow"
+                          aria-label="About shear shallow">
+                    <i class="text-sm bi bi-info-square"></i>
+                  </button>
+                </div>
+                <input id="shearShallow" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]" min="0" max="0.00001" step="0.0000001" x-model="shearShallow" />
+                <div class="text-xs text-shark-400 text-right">
+                  Value: <span x-text="Number(shearShallow).toExponential(2)"></span>
+                </div>
+              </div>
+              <div x-data="{ shearDeep: 0.000005 }"
+                class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-90%] motion-opacity-in-[0%] motion-duration-75 motion-delay-450 motion-ease-out">
+                <div class="flex flex-row items-center justify-between">
+                  <span class="label-text text-base font-ultralight block mb-2 text-shark-100">Shear (Deep)</span>
+                  <button type="button"
+                          class="text-sharklite-400 hover:text-white transition-colors p-2"
+                          data-tooltip="shearDeep"
+                          aria-label="About shear deep">
+                    <i class="text-sm bi bi-info-square"></i>
+                  </button>
+                </div>
+                <input id="shearDeep" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]" min="0" max="0.0001" step="0.0000001" x-model="shearDeep" />
+                <div class="text-xs text-shark-400 text-right">
+                  Value: <span x-text="Number(shearDeep).toExponential(2)"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Noise (Advanced) -->
+          <div x-data="{ open: false }" class="bg-woodsmoke-800 p-2 rounded-xl shadow-sm border border-woodsmoke-700 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="label-text text-lg font-ultralight text-shark-100">Noise (Advanced)</span>
+              <label class="flex items-center gap-2 text-sm text-shark-300">
+                <span>Show</span>
+                <input type="checkbox" class="switch switch-outline checked:text-spray-500 checked:border-spray-400 checked:bg-woodsmoke-800 hover:checked:bg-woodsmoke-800" x-model="open" />
+              </label>
+            </div>
+            <div x-show="open" class="space-y-2">
+              <div x-data="{ octaves: 8 }" class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-10%] motion-opacity-in-[0%] motion-duration-75 motion-delay-50 motion-ease-out">
+                <!-- Octaves -->
+                <div class="flex flex-row items-center justify-between">
+                  <span class="label-text text-base font-ultralight block mb-2 text-shark-100">Octaves</span>
+                  <button type="button"
+                          class="text-sharklite-400 hover:text-white transition-colors p-2"
+                          data-tooltip="octaves"
+                          aria-label="About octaves">
+                    <i class="text-sm bi bi-info-square"></i>
+                  </button>
+                </div>
+                <input id="octaves" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]" min="1" max="12" x-model="octaves" />
+                <div class="text-xs text-shark-400 text-right">
+                  Value: <span x-text="octaves"></span>
+                </div>
+              </div>
+              <div x-data="{ zoom: 3 }" class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-20%] motion-opacity-in-[0%] motion-duration-75 motion-delay-100 motion-ease-out">
+                <!-- Zoom -->
+                <div class="flex flex-row items-center justify-between">
+                  <span class="label-text text-base font-ultralight block mb-2 text-shark-100">Zoom</span>
+                  <button type="button"
+                          class="text-sharklite-400 hover:text-white transition-colors p-2"
+                          data-tooltip="zoom"
+                          aria-label="About zoom">
+                    <i class="text-sm bi bi-info-square"></i>
+                  </button>
+                </div>
+                <input id="zoom" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]" min="1" max="100" step="1" x-model="zoom" />
+                <div class="text-xs text-shark-400 text-right">
+                  Value: <span x-text="zoom"></span>
+                </div>
+              </div>
+              <div x-data="{ persistence: 0.6 }" class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-30%] motion-opacity-in-[0%] motion-duration-75 motion-delay-150 motion-ease-out">
+                <!-- Persistence -->
+                <div class="flex flex-row items-center justify-between">
+                  <span class="label-text text-base font-ultralight block mb-2 text-shark-100">Persistence</span>
+                  <button type="button"
+                          class="text-sharklite-400 hover:text-white transition-colors p-2"
+                          data-tooltip="persistence"
+                          aria-label="About persistence">
+                    <i class="text-sm bi bi-info-square"></i>
+                  </button>
+                </div>
+                <input id="persistence" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]" min="0" max="1" step="0.01" x-model="persistence" />
+                <div class="text-xs text-shark-400 text-right">
+                  Value: <span x-text="Number(persistence).toFixed(2)"></span>
+                </div>
+              </div>
+              <div x-data="{ warpFactor: 0.5 }" class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-40%] motion-opacity-in-[0%] motion-duration-75 motion-delay-200 motion-ease-out">
+                <!-- Warp Factor -->
+                <div class="flex flex-row items-center justify-between">
+                  <span class="label-text text-base font-ultralight block mb-2 text-shark-100">Warp Factor</span>
+                  <button type="button"
+                          class="text-sharklite-400 hover:text-white transition-colors p-2"
+                          data-tooltip="warpFactor"
+                          aria-label="About warp factor">
+                    <i class="text-sm bi bi-info-square"></i>
+                  </button>
+                </div>
+                <input id="warpFactor" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]" min="0" max="2" step="0.01" x-model="warpFactor" />
+                <div class="text-xs text-shark-400 text-right">
+                  Value: <span x-text="Number(warpFactor).toFixed(2)"></span>
+                </div>
+              </div>
+              <div x-data="{ seed: 42 }" class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-50%] motion-opacity-in-[0%] motion-duration-75 motion-delay-250 motion-ease-out">
+                <!-- Seed -->
+                <div class="flex flex-row items-center justify-between">
+                  <span class="label-text text-base font-ultralight block mb-2 text-shark-100">Seed</span>
+                  <button type="button"
+                          class="text-sharklite-400 hover:text-white transition-colors p-2"
+                          data-tooltip="seed"
+                          aria-label="About seed">
+                    <i class="text-sm bi bi-info-square"></i>
+                  </button>
+                </div>
+                <input id="seed" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]" min="1" max="100" step="1" x-model="seed" />
+                <div class="text-xs text-shark-400 text-right">
+                  Value: <span x-text="seed"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Thermal (Advanced) -->
+          <div x-data="{ open: false }" class="bg-woodsmoke-800 p-2 rounded-xl shadow-sm border border-woodsmoke-700 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="label-text text-lg font-ultralight text-shark-100">Thermal (Advanced)</span>
+              <label class="flex items-center gap-2 text-sm text-shark-300">
+                <span>Show</span>
+                <input type="checkbox" class="switch switch-outline checked:text-spray-500 checked:border-spray-400 checked:bg-woodsmoke-800 hover:checked:bg-woodsmoke-800" x-model="open" />
+              </label>
+            </div>
+            <div x-show="open" class="space-y-2">
+              <div x-data="{ talusWet: 0.013245 }" class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-10%] motion-opacity-in-[0%] motion-duration-75 motion-delay-50 motion-ease-out">
+                <!-- Talus Wet -->
+                <div class="flex flex-row items-center justify-between">
+                  <span class="label-text text-base font-ultralight block mb-2 text-shark-100">Talus Wet</span>
+                  <button type="button"
+                          class="text-sharklite-400 hover:text-white transition-colors p-2"
+                          data-tooltip="talusWet"
+                          aria-label="About talus wet">
+                    <i class="text-sm bi bi-info-square"></i>
+                  </button>
+                </div>
+                <input id="talusWet" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]" min="0" max="0.05" step="0.0001" x-model="talusWet" />
+                <div class="text-xs text-shark-400 text-right">
+                  Value: <span x-text="Number(talusWet).toFixed(5)"></span>
+                </div>
+              </div>
+              <div x-data="{ talusImmersed: 0.0074092 }" class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-20%] motion-opacity-in-[0%] motion-duration-75 motion-delay-100 motion-ease-out">
+                <!-- Talus Immersed -->
+                <div class="flex flex-row items-center justify-between">
+                  <span class="label-text text-base font-ultralight block mb-2 text-shark-100">Talus Immersed</span>
+                  <button type="button"
+                          class="text-sharklite-400 hover:text-white transition-colors p-2"
+                          data-tooltip="talusImmersed"
+                          aria-label="About talus immersed">
+                    <i class="text-sm bi bi-info-square"></i>
+                  </button>
+                </div>
+                <input id="talusImmersed" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]" min="0" max="0.05" step="0.0001" x-model="talusImmersed" />
+                <div class="text-xs text-shark-400 text-right">
+                  Value: <span x-text="Number(talusImmersed).toFixed(5)"></span>
+                </div>
+              </div>
+              <div x-data="{ talusLowHeight: 0.4 }" class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-30%] motion-opacity-in-[0%] motion-duration-75 motion-delay-150 motion-ease-out">
+                <!-- Talus Low Height -->
+                <div class="flex flex-row items-center justify-between">
+                  <span class="label-text text-base font-ultralight block mb-2 text-shark-100">Talus Low Height</span>
+                  <button type="button"
+                          class="text-sharklite-400 hover:text-white transition-colors p-2"
+                          data-tooltip="talusLowHeight"
+                          aria-label="About talus low height">
+                    <i class="text-sm bi bi-info-square"></i>
+                  </button>
+                </div>
+                <input id="talusLowHeight" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]" min="0" max="1" step="0.01" x-model="talusLowHeight" />
+                <div class="text-xs text-shark-400 text-right">
+                  Value: <span x-text="Number(talusLowHeight).toFixed(2)"></span>
+                </div>
+              </div>
+              <div x-data="{ talusHighHeight: 0.8 }" class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-40%] motion-opacity-in-[0%] motion-duration-75 motion-delay-200 motion-ease-out">
+                <!-- Talus High Height -->
+                <div class="flex flex-row items-center justify-between">
+                  <span class="label-text text-base font-ultralight block mb-2 text-shark-100">Talus High Height</span>
+                  <button type="button"
+                          class="text-sharklite-400 hover:text-white transition-colors p-2"
+                          data-tooltip="talusHighHeight"
+                          aria-label="About talus high height">
+                    <i class="text-sm bi bi-info-square"></i>
+                  </button>
+                </div>
+                <input id="talusHighHeight" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]" min="0" max="1" step="0.01" x-model="talusHighHeight" />
+                <div class="text-xs text-shark-400 text-right">
+                  Value: <span x-text="Number(talusHighHeight).toFixed(2)"></span>
+                </div>
+              </div>
+              <div x-data="{ talusDryLow: 0.01 }" class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-50%] motion-opacity-in-[0%] motion-duration-75 motion-delay-250 motion-ease-out">
+                <!-- Talus Dry Low -->
+                <div class="flex flex-row items-center justify-between">
+                  <span class="label-text text-base font-ultralight block mb-2 text-shark-100">Talus Dry Low</span>
+                  <button type="button"
+                          class="text-sharklite-400 hover:text-white transition-colors p-2"
+                          data-tooltip="talusDryLow"
+                          aria-label="About talus dry low">
+                    <i class="text-sm bi bi-info-square"></i>
+                  </button>
+                </div>
+                <input id="talusDryLow" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]" min="0" max="0.05" step="0.0001" x-model="talusDryLow" />
+                <div class="text-xs text-shark-400 text-right">
+                  Value: <span x-text="Number(talusDryLow).toFixed(5)"></span>
+                </div>
+              </div>
+              <div x-data="{ talusDryHigh: 0.005 }" class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-60%] motion-opacity-in-[0%] motion-duration-75 motion-delay-300 motion-ease-out">
+                <!-- Talus Dry High -->
+                <div class="flex flex-row items-center justify-between">
+                  <span class="label-text text-base font-ultralight block mb-2 text-shark-100">Talus Dry High</span>
+                  <button type="button"
+                          class="text-sharklite-400 hover:text-white transition-colors p-2"
+                          data-tooltip="talusDryHigh"
+                          aria-label="About talus dry high">
+                    <i class="text-sm bi bi-info-square"></i>
+                  </button>
+                </div>
+                <input id="talusDryHigh" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]" min="0" max="0.05" step="0.0001" x-model="talusDryHigh" />
+                <div class="text-xs text-shark-400 text-right">
+                  Value: <span x-text="Number(talusDryHigh).toFixed(5)"></span>
+                </div>
+              </div>
+              <div x-data="{ flowWetMin: 0.002 }" class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-70%] motion-opacity-in-[0%] motion-duration-75 motion-delay-350 motion-ease-out">
+                <!-- Flow Wet Min -->
+                <div class="flex flex-row items-center justify-between">
+                  <span class="label-text text-base font-ultralight block mb-2 text-shark-100">Flow Wet Min</span>
+                  <button type="button"
+                          class="text-sharklite-400 hover:text-white transition-colors p-2"
+                          data-tooltip="flowWetMin"
+                          aria-label="About flow wet min">
+                    <i class="text-sm bi bi-info-square"></i>
+                  </button>
+                </div>
+                <input id="flowWetMin" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]" min="0" max="0.05" step="0.0001" x-model="flowWetMin" />
+                <div class="text-xs text-shark-400 text-right">
+                  Value: <span x-text="Number(flowWetMin).toFixed(4)"></span>
+                </div>
+              </div>
+              <div x-data="{ flowWetMax: 0.02 }" class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-80%] motion-opacity-in-[0%] motion-duration-75 motion-delay-400 motion-ease-out">
+                <!-- Flow Wet Max -->
+                <div class="flex flex-row items-center justify-between">
+                  <span class="label-text text-base font-ultralight block mb-2 text-shark-100">Flow Wet Max</span>
+                  <button type="button"
+                          class="text-sharklite-400 hover:text-white transition-colors p-2"
+                          data-tooltip="flowWetMax"
+                          aria-label="About flow wet max">
+                    <i class="text-sm bi bi-info-square"></i>
+                  </button>
+                </div>
+                <input id="flowWetMax" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]" min="0" max="0.1" step="0.0001" x-model="flowWetMax" />
+                <div class="text-xs text-shark-400 text-right">
+                  Value: <span x-text="Number(flowWetMax).toFixed(4)"></span>
+                </div>
+              </div>
+              <div x-data="{ immerseMinX: 1.5 }" class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-90%] motion-opacity-in-[0%] motion-duration-75 motion-delay-450 motion-ease-out">
+                <!-- Immerse Min X -->
+                <div class="flex flex-row items-center justify-between">
+                  <span class="label-text text-base font-ultralight block mb-2 text-shark-100">Immerse Min X</span>
+                  <button type="button"
+                          class="text-sharklite-400 hover:text-white transition-colors p-2"
+                          data-tooltip="immerseMinX"
+                          aria-label="About immerse min X">
+                    <i class="text-sm bi bi-info-square"></i>
+                  </button>
+                </div>
+                <input id="immerseMinX" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]" min="0" max="20" step="0.1" x-model="immerseMinX" />
+                <div class="text-xs text-shark-400 text-right">
+                  Value: <span x-text="Number(immerseMinX).toFixed(1)"></span>
+                </div>
+              </div>
+              <div x-data="{ immerseMaxX: 12.0 }" class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-100%] motion-opacity-in-[0%] motion-duration-75 motion-delay-500 motion-ease-out">
+                <!-- Immerse Max X -->
+                <div class="flex flex-row items-center justify-between">
+                  <span class="label-text text-base font-ultralight block mb-2 text-shark-100">Immerse Max X</span>
+                  <button type="button"
+                          class="text-sharklite-400 hover:text-white transition-colors p-2"
+                          data-tooltip="immerseMaxX"
+                          aria-label="About immerse max X">
+                    <i class="text-sm bi bi-info-square"></i>
+                  </button>
+                </div>
+                <input id="immerseMaxX" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]" min="0" max="20" step="0.1" x-model="immerseMaxX" />
+                <div class="text-xs text-shark-400 text-right">
+                  Value: <span x-text="Number(immerseMaxX).toFixed(1)"></span>
+                </div>
+              </div>
+              <div x-data="{ thermalStrength: 0.15 }" class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-110%] motion-opacity-in-[0%] motion-duration-75 motion-delay-550 motion-ease-out">
+                <!-- Thermal Strength -->
+                <div class="flex flex-row items-center justify-between">
+                  <span class="label-text text-base font-ultralight block mb-2 text-shark-100">Thermal Strength</span>
+                  <button type="button"
+                          class="text-sharklite-400 hover:text-white transition-colors p-2"
+                          data-tooltip="thermalStrength"
+                          aria-label="About thermal strength">
+                    <i class="text-sm bi bi-info-square"></i>
+                  </button>
+                </div>
+                <input id="thermalStrength" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]" min="0" max="1" step="0.01" x-model="thermalStrength" />
+                <div class="text-xs text-shark-400 text-right">
+                  Value: <span x-text="Number(thermalStrength).toFixed(2)"></span>
+                </div>
+              </div>
+              <div x-data="{ thermalMaxDeltaPerPass: 0.0025 }" class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-120%] motion-opacity-in-[0%] motion-duration-75 motion-delay-600 motion-ease-out">
+                <!-- Thermal Max Δ/Pass -->
+                <div class="flex flex-row items-center justify-between">
+                  <span class="label-text text-base font-ultralight block mb-2 text-shark-100">Thermal Max Δ/Pass</span>
+                  <button type="button"
+                          class="text-sharklite-400 hover:text-white transition-colors p-2"
+                          data-tooltip="thermalMaxDeltaPerPass"
+                          aria-label="About thermal max delta per pass">
+                    <i class="text-sm bi bi-info-square"></i>
+                  </button>
+                </div>
+                <input id="thermalMaxDeltaPerPass" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]" min="0" max="0.01" step="0.0001" x-model="thermalMaxDeltaPerPass" />
+                <div class="text-xs text-shark-400 text-right">
+                  Value: <span x-text="Number(thermalMaxDeltaPerPass).toFixed(4)"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Margolus -->
+          <div x-data="{ open: false }" class="bg-woodsmoke-800 p-2 rounded-xl shadow-sm border border-woodsmoke-700 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="label-text text-lg font-ultralight text-shark-100">Margolus</span>
+              <label class="flex items-center gap-2 text-sm text-shark-300">
+                <span>Show</span>
+                <input type="checkbox" class="switch switch-outline checked:text-spray-500 checked:border-spray-400 checked:bg-woodsmoke-800 hover:checked:bg-woodsmoke-800" x-model="open" />
+              </label>
+            </div>
+            <div x-show="open" class="space-y-2">
+              <div
+                x-data="{ margolusPasses: 64 }"
+                class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-10%] motion-opacity-in-[0%] motion-duration-75 motion-delay-50 motion-ease-out"
+              >
+                <!-- Passes -->
+                <div class="flex flex-row items-center justify-between">
+                  <span class="label-text text-base font-ultralight block mb-2 text-shark-100">Passes</span>
+                  <button type="button"
+                          class="text-sharklite-400 hover:text-white transition-colors p-2"
+                          data-tooltip="margolusPasses"
+                          aria-label="About Margolus passes">
+                    <i class="text-sm bi bi-info-square"></i>
+                  </button>
+                </div>
+                <input id="margolusPasses" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]" min="0" max="512" step="1" x-model="margolusPasses" />
+                <div class="text-xs text-shark-400 text-right">
+                  Value: <span x-text="margolusPasses"></span>
+                </div>
+              </div>
+              <div
+                x-data="{ margolusBinarySearchIterations: 8 }"
+                class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-20%] motion-opacity-in-[0%] motion-duration-75 motion-delay-100 motion-ease-out"
+              >
+                <!-- Binary Search Iterations -->
+                <div class="flex flex-row items-center justify-between">
+                  <span class="label-text text-base font-ultralight block mb-2 text-shark-100">Binary Search Iterations</span>
+                  <button type="button"
+                          class="text-sharklite-400 hover:text-white transition-colors p-2"
+                          data-tooltip="margolusBinarySearchIterations"
+                          aria-label="About Margolus binary search iterations">
+                    <i class="text-sm bi bi-info-square"></i>
+                  </button>
+                </div>
+                <input id="margolusBinarySearchIterations" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]" min="1" max="64" step="1" x-model="margolusBinarySearchIterations" />
+                <div class="text-xs text-shark-400 text-right">
+                  Value: <span x-text="margolusBinarySearchIterations"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </ul>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto flex flex-col h-full bg-woodsmoke-900">
+
+      <!-- Bottom-right tab switcher -->
+      <div id="bottom-right-modal" class="fixed bottom-4 right-4 z-50 opacity-100 block" role="dialog" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content bg-woodsmoke-900 border border-woodsmoke-700 rounded-lg shadow-lg">
+            <div class="modal-body p-3">
+              <div class="tabs flex flex-col justify-center bg-woodsmoke-900" aria-label="Tabs" role="tablist">
+                <button type="button"
+                  class="btn btn-text mb-1 active-tab:bg-spray-600 active-tab:text-woodsmoke-900 hover:text-spray-400 hover:bg-woodsmoke-800 flex items-center justify-center border border-woodsmoke-700 active"
+                  id="tabs-item-2" data-tab="#tabs-panel-2" aria-controls="tabs-panel-2" role="tab" aria-selected="true">
+                  <span class="ti ti-hexagon-3d size-4 shrink-0 mr-1"></span>
+                  <span class="hidden sm:inline">Main Canvas</span>
+                </button>
+                <button type="button"
+                  class="btn btn-text active-tab:bg-spray-600 active-tab:text-woodsmoke-900 hover:text-spray-400 hover:bg-woodsmoke-800 flex items-center justify-center border border-woodsmoke-700"
+                  id="tabs-item-1" data-tab="#tabs-panel-1" aria-controls="tabs-panel-1" role="tab" aria-selected="false">
+                  <span class="ti ti-layout-grid size-4 shrink-0 mr-1"></span>
+                  <span class="hidden sm:inline">Canvas Grid</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panels -->
+      <div class="flex-1 min-h-0">
+        <!-- Canvas Grid (2x2 single-resolution) -->
+        <div id="tabs-panel-1" class="hidden" role="tabpanel" aria-labelledby="tabs-item-1">
+          <div class="bg-woodsmoke-900/80 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-3 p-3 h-full">
+            <!-- Height -->
+            <div class="flex flex-col items-center bg-woodsmoke-800 rounded-lg shadow-lg p-3 border border-woodsmoke-700">
+              <span class="mb-2 text-sm text-shark-200">Height</span>
+              <div class="w-full aspect-[1/1]">
+                <canvas id="heightCanvas" class="w-full h-full rounded shadow border border-woodsmoke-700 bg-woodsmoke-900"></canvas>
+              </div>
+            </div>
+            <!-- Flowing Water -->
+            <div class="flex flex-col items-center bg-woodsmoke-800 rounded-lg shadow-lg p-3 border border-woodsmoke-700">
+              <span class="mb-2 text-sm text-shark-200">Flowing Water</span>
+              <div class="w-full aspect-[1/1]">
+                <canvas id="flowingWaterCanvas" class="w-full h-full rounded shadow border border-woodsmoke-700 bg-woodsmoke-900"></canvas>
+              </div>
+            </div>
+            <!-- Still Water -->
+            <div class="flex flex-col items-center bg-woodsmoke-800 rounded-lg shadow-lg p-3 border border-woodsmoke-700">
+              <span class="mb-2 text-sm text-shark-200">Still Water</span>
+              <div class="w-full aspect-[1/1]">
+                <canvas id="stillWaterCanvas" class="w-full h-full rounded shadow border border-woodsmoke-700 bg-woodsmoke-900"></canvas>
+              </div>
+            </div>
+            <!-- Sediment -->
+            <div class="flex flex-col items-center bg-woodsmoke-800 rounded-lg shadow-lg p-3 border border-woodsmoke-700">
+              <span class="mb-2 text-sm text-shark-200">Sediment</span>
+              <div class="w-full aspect-[1/1]">
+                <canvas id="sedimentCanvas" class="w-full h-full rounded shadow border border-woodsmoke-700 bg-woodsmoke-900"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Canvas -->
+        <div id="tabs-panel-2" class="h-full" role="tabpanel" aria-labelledby="tabs-item-2">
+          <div class="bg-woodsmoke-900/80 flex justify-center items-center h-full p-3">
+            <canvas id="mainCanvas" class="bg-woodsmoke-950 border border-woodsmoke-700 rounded shadow h-full w-full"
+              width="800" height="500"></canvas>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>

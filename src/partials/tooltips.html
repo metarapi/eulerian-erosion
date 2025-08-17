@@ -1,0 +1,231 @@
+<template id="tt-iterations">
+  <div class="max-w-xs p-1.5 text-start">
+    <p class="text-shark-300 text-sm font-medium">
+      Number of simulation steps to run for hydraulic erosion.
+    </p>
+  </div>
+</template>
+
+<template id="tt-evapRate">
+  <div class="max-w-xs p-1.5 text-start">
+    <p class="text-shark-300 text-sm font-medium">
+      Rate at which water evaporates from the terrain.
+    </p>
+  </div>
+</template>
+
+<template id="tt-spawnCycles">
+  <div class="max-w-xs p-1.5 text-start">
+    <p class="text-shark-300 text-sm font-medium">
+      Number of cycles to spawn water droplets per iteration. Higher values increase water input.
+    </p>
+  </div>
+</template>
+
+<template id="tt-depositionRate">
+  <div class="max-w-xs p-1.5 text-start">
+    <p class="text-shark-300 text-sm font-medium">
+      Controls how quickly sediment is deposited from water onto the terrain.
+    </p>
+  </div>
+</template>
+
+<template id="tt-waterHeightFactor">
+  <div class="max-w-xs p-1.5 text-start">
+    <p class="text-shark-300 text-sm font-medium">
+      Influences the height of water on the terrain, affecting flow and erosion.
+    </p>
+  </div>
+</template>
+
+<template id="tt-stillWaterRelaxation">
+  <div class="max-w-xs p-1.5 text-start">
+    <p class="text-shark-300 text-sm font-medium">
+      Determines the relaxation effect on still water, impacting its appearance and interaction with terrain.
+    </p>
+  </div>
+</template>
+
+<template id="tt-spawnDensity">
+  <div class="max-w-xs p-1.5 text-start">
+    <p class="text-shark-300 text-sm font-medium">
+      Affects the density of spawned water droplets, influencing flow and erosion patterns.
+    </p>
+  </div>
+</template>
+
+<template id="tt-flowDepthWeight">
+  <div class="max-w-xs p-1.5 text-start">
+    <p class="text-shark-300 text-sm font-medium">
+      Determines the influence of flow depth on erosion and sediment transport.
+    </p>
+  </div>
+</template>
+
+<template id="tt-shearShallow">
+  <div class="max-w-xs p-1.5 text-start">
+    <p class="text-shark-300 text-sm font-medium">
+      Controls the shear force applied to shallow water, affecting its flow and interaction with terrain.
+    </p>
+  </div>
+</template>
+
+<template id="tt-shearDeep">
+  <div class="max-w-xs p-1.5 text-start">
+    <p class="text-shark-300 text-sm font-medium">
+      Controls the shear force applied to deep water, influencing its movement and sediment transport.
+    </p>
+  </div>
+</template>
+
+<template id="tt-octaves">
+  <div class="max-w-xs p-1.5 text-start">
+    <p class="text-shark-300 text-sm font-medium">
+      Number of octaves for the noise function, affecting the detail and complexity of the noise pattern.
+    </p>
+  </div>
+</template>
+
+<template id="tt-zoom">
+  <div class="max-w-xs p-1.5 text-start">
+    <p class="text-shark-300 text-sm font-medium">
+      Controls the zoom level of the noise pattern, affecting its scale on the terrain.
+    </p>
+  </div>
+</template>
+
+<template id="tt-persistence">
+  <div class="max-w-xs p-1.5 text-start">
+    <p class="text-shark-300 text-sm font-medium">
+      Determines the persistence of the noise pattern, affecting how quickly it fades.
+    </p>
+  </div>
+</template>
+
+<template id="tt-warpFactor">
+  <div class="max-w-xs p-1.5 text-start">
+    <p class="text-shark-300 text-sm font-medium">
+      Controls the warping of the noise pattern, affecting its distortion and flow.
+    </p>
+  </div>
+</template>
+
+<template id="tt-seed">
+  <div class="max-w-xs p-1.5 text-start">
+    <p class="text-shark-300 text-sm font-medium">
+      Seed value for random number generation in noise. Changing this alters the noise pattern.
+    </p>
+  </div>
+</template>
+
+<template id="tt-talusWet">
+  <div class="max-w-xs p-1.5 text-start">
+    <p class="text-shark-300 text-sm font-medium">
+      Controls the wetness of the talus, affecting how it interacts with water and sediment.
+    </p>
+  </div>
+</template>
+
+<template id="tt-talusImmersed">
+  <div class="max-w-xs p-1.5 text-start">
+    <p class="text-shark-300 text-sm font-medium">
+      Controls the immersion of the talus in water, affecting its erosion and sediment deposition.
+    </p>
+  </div>
+</template>
+
+<template id="tt-talusLowHeight">
+  <div class="max-w-xs p-1.5 text-start">
+    <p class="text-shark-300 text-sm font-medium">
+      Sets the lower height limit for the talus, influencing its slope and stability.
+    </p>
+  </div>
+</template>
+
+<template id="tt-talusHighHeight">
+  <div class="max-w-xs p-1.5 text-start">
+    <p class="text-shark-300 text-sm font-medium">
+      Sets the upper height limit for the talus, affecting its erosion and sediment retention.
+    </p>
+  </div>
+</template>
+
+<template id="tt-talusDryLow">
+  <div class="max-w-xs p-1.5 text-start">
+    <p class="text-shark-300 text-sm font-medium">
+      Controls the dryness of the talus at low heights, affecting its stability and erosion.
+    </p>
+  </div>
+</template>
+
+<template id="tt-talusDryHigh">
+  <div class="max-w-xs p-1.5 text-start">
+    <p class="text-shark-300 text-sm font-medium">
+      Controls the dryness of the talus at high heights, influencing erosion and sediment dynamics.
+    </p>
+  </div>
+</template>
+
+<template id="tt-flowWetMin">
+  <div class="max-w-xs p-1.5 text-start">
+    <p class="text-shark-300 text-sm font-medium">
+      Minimum flow rate for wet conditions, below which flow is considered dry.
+    </p>
+  </div>
+</template>
+
+<template id="tt-flowWetMax">
+  <div class="max-w-xs p-1.5 text-start">
+    <p class="text-shark-300 text-sm font-medium">
+      Maximum flow rate for wet conditions, above which flow is considered fast.
+    </p>
+  </div>
+</template>
+
+<template id="tt-immerseMinX">
+  <div class="max-w-xs p-1.5 text-start">
+    <p class="text-shark-300 text-sm font-medium">
+      Minimum X-coordinate for immersion effects, below which objects are considered dry.
+    </p>
+  </div>
+</template>
+
+<template id="tt-immerseMaxX">
+  <div class="max-w-xs p-1.5 text-start">
+    <p class="text-shark-300 text-sm font-medium">
+      Maximum X-coordinate for immersion effects, above which objects are considered fully immersed.
+    </p>
+  </div>
+</template>
+
+<template id="tt-thermalStrength">
+  <div class="max-w-xs p-1.5 text-start">
+    <p class="text-shark-300 text-sm font-medium">
+      Strength of the thermal effects applied to the terrain, influencing erosion and sediment transport.
+    </p>
+  </div>
+</template>
+
+<template id="tt-thermalMaxDeltaPerPass">
+  <div class="max-w-xs p-1.5 text-start">
+    <p class="text-shark-300 text-sm font-medium">
+      Maximum change in thermal value per pass, controlling the intensity of thermal effects.
+    </p>
+  </div>
+</template>
+
+<template id="tt-margolusPasses">
+  <div class="max-w-xs p-1.5 text-start">
+    <p class="text-shark-300 text-sm font-medium">
+      Number of passes for the Margolus operator, affecting the diffusion and flow of the simulation.
+    </p>
+  </div>
+</template>
+
+<template id="tt-margolusBinarySearchIterations">
+  <div class="max-w-xs p-1.5 text-start">
+    <p class="text-shark-300 text-sm font-medium">
+      Number of iterations for binary search in the Margolus operator, affecting precision and performance.
+    </p>
+  </div>
+</template>
