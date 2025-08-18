@@ -23,7 +23,7 @@
       </div>
     </div>
     <div>
-      <a href="https://github.com/metarapi/multigrid-eulerian-erosion"
+      <a href="https://github.com/metarapi/eulerian-erosion"
         class="text-sharklite-300 hover:text-white transition-colors p-2" target="_blank" rel="noopener noreferrer">
         <i class="bi bi-github text-2xl"></i>
       </a>
@@ -107,10 +107,12 @@
           <!-- Hydraulic Erosion -->
           <div x-data="{ open: true }" class="bg-woodsmoke-800 p-2 rounded-xl shadow-sm border border-woodsmoke-700 space-y-2">
             <div class="flex items-center justify-between">
-              <span class="label-text text-lg font-ultralight text-shark-100">Hydraulic</span>
-              <label class="flex items-center gap-2 text-sm text-shark-300">
-                <span>Show</span>
+              <span class="label-text text-lg font-light text-spray-50"
+              :class="open ? 'text-spray-50' : 'text-woodsmoke-200'"
+              >Hydraulic Erosion Parameters</span>
+              <label class="flex flex-col items-center text-sm">
                 <input type="checkbox" class="switch switch-outline checked:text-spray-500 checked:border-spray-400 checked:bg-woodsmoke-800 hover:checked:bg-woodsmoke-800" x-model="open" />
+                <span class="label-text text-xs font-ultralight text-woodsmoke-400">Show</span>
               </label>
             </div>
             <div x-show="open" class="space-y-2">
@@ -264,13 +266,15 @@
             </div>
           </div>
 
-          <!-- Noise (Advanced) -->
+          <!-- Noise -->
           <div x-data="{ open: false }" class="bg-woodsmoke-800 p-2 rounded-xl shadow-sm border border-woodsmoke-700 space-y-2">
             <div class="flex items-center justify-between">
-              <span class="label-text text-lg font-ultralight text-shark-100">Noise (Advanced)</span>
-              <label class="flex items-center gap-2 text-sm text-shark-300">
-                <span>Show</span>
+              <span class="label-text text-lg font-light text-spray-50"
+              :class="open ? 'text-spray-50' : 'text-woodsmoke-200'"
+              >Simplex Noise Parameters</span>
+              <label class="flex flex-col items-center text-sm">
                 <input type="checkbox" class="switch switch-outline checked:text-spray-500 checked:border-spray-400 checked:bg-woodsmoke-800 hover:checked:bg-woodsmoke-800" x-model="open" />
+                <span class="label-text text-xs font-ultralight text-woodsmoke-400">Show</span>
               </label>
             </div>
             <div x-show="open" class="space-y-2">
@@ -357,13 +361,15 @@
             </div>
           </div>
 
-          <!-- Thermal (Advanced) -->
+          <!-- Thermal -->
           <div x-data="{ open: false }" class="bg-woodsmoke-800 p-2 rounded-xl shadow-sm border border-woodsmoke-700 space-y-2">
             <div class="flex items-center justify-between">
-              <span class="label-text text-lg font-ultralight text-shark-100">Thermal (Advanced)</span>
-              <label class="flex items-center gap-2 text-sm text-shark-300">
-                <span>Show</span>
+              <span class="label-text text-lg font-light text-spray-50"
+              :class="open ? 'text-spray-50' : 'text-woodsmoke-200'"
+              >Thermal Erosion Parameters</span>
+              <label class="flex flex-col items-center text-sm">
                 <input type="checkbox" class="switch switch-outline checked:text-spray-500 checked:border-spray-400 checked:bg-woodsmoke-800 hover:checked:bg-woodsmoke-800" x-model="open" />
+                <span class="label-text text-xs font-ultralight text-woodsmoke-400">Show</span>
               </label>
             </div>
             <div x-show="open" class="space-y-2">
@@ -565,10 +571,13 @@
           <!-- Margolus -->
           <div x-data="{ open: false }" class="bg-woodsmoke-800 p-2 rounded-xl shadow-sm border border-woodsmoke-700 space-y-2">
             <div class="flex items-center justify-between">
-              <span class="label-text text-lg font-ultralight text-shark-100">Margolus</span>
-              <label class="flex items-center gap-2 text-sm text-shark-300">
-                <span>Show</span>
+              <span 
+              class="label-text text-lg font-light text-spray-50"
+              :class="open ? 'text-spray-50' : 'text-woodsmoke-200'"
+              >Water Redistribution Parameters</span>
+              <label class="flex flex-col items-center text-sm">
                 <input type="checkbox" class="switch switch-outline checked:text-spray-500 checked:border-spray-400 checked:bg-woodsmoke-800 hover:checked:bg-woodsmoke-800" x-model="open" />
+                <span class="label-text text-xs font-ultralight text-woodsmoke-400">Show</span>
               </label>
             </div>
             <div x-show="open" class="space-y-2">

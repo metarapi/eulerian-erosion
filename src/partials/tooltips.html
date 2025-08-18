@@ -1,7 +1,9 @@
 <template id="tt-iterations">
   <div class="max-w-xs p-1.5 text-start">
     <p class="text-shark-300 text-sm font-medium">
-      Number of simulation steps to run for hydraulic erosion.
+      Total number of simulation steps to run. More iterations allow erosion
+      and deposition to fully develop river networks, but also increase
+      runtime. Too few iterations may only show shallow channels and incomplete flows.
     </p>
   </div>
 </template>
@@ -9,7 +11,8 @@
 <template id="tt-evapRate">
   <div class="max-w-xs p-1.5 text-start">
     <p class="text-shark-300 text-sm font-medium">
-      Rate at which water evaporates from the terrain.
+      Fraction of flowing water lost per step during remobilization. High values accelerate drying of active streams,
+      reducing their reach. Low values sustain flow for longer distances, enabling deeper channel formation.
     </p>
   </div>
 </template>
@@ -17,7 +20,9 @@
 <template id="tt-spawnCycles">
   <div class="max-w-xs p-1.5 text-start">
     <p class="text-shark-300 text-sm font-medium">
-      Number of cycles to spawn water droplets per iteration. Higher values increase water input.
+      Number of early iterations during which new water is added. Extending
+      this creates heavier or longer “rainfall events,” fueling stronger
+      river incision before the terrain stabilizes.
     </p>
   </div>
 </template>
@@ -25,7 +30,9 @@
 <template id="tt-depositionRate">
   <div class="max-w-xs p-1.5 text-start">
     <p class="text-shark-300 text-sm font-medium">
-      Controls how quickly sediment is deposited from water onto the terrain.
+      Controls sediment exchange between water and terrain. Higher values cause rapid deposition in low-energy areas
+      (filling depressions, building deltas). Lower values allow sediment to travel farther while increasing erosion
+      capacity in high-energy flows.
     </p>
   </div>
 </template>
@@ -33,7 +40,10 @@
 <template id="tt-waterHeightFactor">
   <div class="max-w-xs p-1.5 text-start">
     <p class="text-shark-300 text-sm font-medium">
-      Influences the height of water on the terrain, affecting flow and erosion.
+      Scales the effect of water depth when computing flow direction.
+      High values make deep water dominate routing, strongly reinforcing
+      riverbeds. Low values reduce its weight, letting terrain elevation
+      dictate flow more.
     </p>
   </div>
 </template>
@@ -41,7 +51,9 @@
 <template id="tt-stillWaterRelaxation">
   <div class="max-w-xs p-1.5 text-start">
     <p class="text-shark-300 text-sm font-medium">
-      Determines the relaxation effect on still water, impacting its appearance and interaction with terrain.
+      Under-relaxation factor (0.0-1.0) that limits how much still water can flow out per iteration. Lower values create
+      more gradual, stable settling in depressions and prevent oscillations, while higher values allow faster
+      equilibration but may cause instability.
     </p>
   </div>
 </template>
@@ -49,7 +61,9 @@
 <template id="tt-spawnDensity">
   <div class="max-w-xs p-1.5 text-start">
     <p class="text-shark-300 text-sm font-medium">
-      Affects the density of spawned water droplets, influencing flow and erosion patterns.
+      Density of droplets introduced per spawn cycle. Higher density means
+      broader rainfall coverage, creating widespread erosion. Lower density
+      concentrates water into fewer, more pronounced channels.
     </p>
   </div>
 </template>
@@ -57,7 +71,9 @@
 <template id="tt-flowDepthWeight">
   <div class="max-w-xs p-1.5 text-start">
     <p class="text-shark-300 text-sm font-medium">
-      Determines the influence of flow depth on erosion and sediment transport.
+      Scaling factor for flowing water depth in routing and erosion calculations. Higher values make deep channels
+      dominate flow paths and increase their erosive power. Lower values reduce channelization and enhance sheet flow
+      influence.
     </p>
   </div>
 </template>
@@ -65,7 +81,8 @@
 <template id="tt-shearShallow">
   <div class="max-w-xs p-1.5 text-start">
     <p class="text-shark-300 text-sm font-medium">
-      Controls the shear force applied to shallow water, affecting its flow and interaction with terrain.
+      Minimum shear stress required to start erosion. Increasing this prevents erosion in shallow flows (suppresses
+      gully formation). Decreasing it enables erosion by thin sheets of water.
     </p>
   </div>
 </template>
@@ -73,10 +90,15 @@
 <template id="tt-shearDeep">
   <div class="max-w-xs p-1.5 text-start">
     <p class="text-shark-300 text-sm font-medium">
-      Controls the shear force applied to deep water, influencing its movement and sediment transport.
+      Shear stress required for maximum erosion efficiency. Increasing this reduces erosion in moderate flows,
+      restricting aggressive cutting to only the deepest channels. Decreasing it allows more channels to erode at full
+      capacity.
     </p>
   </div>
 </template>
+
+
+
 
 <template id="tt-octaves">
   <div class="max-w-xs p-1.5 text-start">
@@ -121,7 +143,8 @@
 <template id="tt-talusWet">
   <div class="max-w-xs p-1.5 text-start">
     <p class="text-shark-300 text-sm font-medium">
-      Controls the wetness of the talus, affecting how it interacts with water and sediment.
+      Maximum stable slope angle for terrain wetted by flowing water. Higher values allow steeper slopes before erosion
+      occurs. Lower values trigger erosion at gentler slopes when surface runoff is present.
     </p>
   </div>
 </template>
@@ -129,7 +152,8 @@
 <template id="tt-talusImmersed">
   <div class="max-w-xs p-1.5 text-start">
     <p class="text-shark-300 text-sm font-medium">
-      Controls the immersion of the talus in water, affecting its erosion and sediment deposition.
+      Maximum stable slope angle for fully submerged terrain. Higher values maintain steep underwater slopes. Lower
+      values cause rapid collapse of submerged banks and cliffs.
     </p>
   </div>
 </template>
@@ -137,7 +161,8 @@
 <template id="tt-talusLowHeight">
   <div class="max-w-xs p-1.5 text-start">
     <p class="text-shark-300 text-sm font-medium">
-      Sets the lower height limit for the talus, influencing its slope and stability.
+      Minimum elevation where height-based talus adjustment applies. Terrain below this height uses Talus Dry Low
+      exclusively.
     </p>
   </div>
 </template>
@@ -145,7 +170,8 @@
 <template id="tt-talusHighHeight">
   <div class="max-w-xs p-1.5 text-start">
     <p class="text-shark-300 text-sm font-medium">
-      Sets the upper height limit for the talus, affecting its erosion and sediment retention.
+      Maximum elevation where height-based talus adjustment applies. Terrain above this height uses Talus Dry High
+      exclusively.
     </p>
   </div>
 </template>
@@ -153,7 +179,8 @@
 <template id="tt-talusDryLow">
   <div class="max-w-xs p-1.5 text-start">
     <p class="text-shark-300 text-sm font-medium">
-      Controls the dryness of the talus at low heights, affecting its stability and erosion.
+      Maximum stable slope angle for dry terrain at low elevations. Higher values maintain steep slopes in valleys.
+      Lower values cause gradual slumping in low-lying areas.
     </p>
   </div>
 </template>
@@ -161,7 +188,8 @@
 <template id="tt-talusDryHigh">
   <div class="max-w-xs p-1.5 text-start">
     <p class="text-shark-300 text-sm font-medium">
-      Controls the dryness of the talus at high heights, influencing erosion and sediment dynamics.
+      Maximum stable slope angle for dry terrain at high elevations. Higher values preserve mountain cliffs. Lower
+      values cause peak rounding and scree formation.
     </p>
   </div>
 </template>
@@ -169,7 +197,8 @@
 <template id="tt-flowWetMin">
   <div class="max-w-xs p-1.5 text-start">
     <p class="text-shark-300 text-sm font-medium">
-      Minimum flow rate for wet conditions, below which flow is considered dry.
+      Minimum flowing water value to begin wetting terrain. Below this, terrain is considered completely dry for talus
+      calculations.
     </p>
   </div>
 </template>
@@ -177,7 +206,8 @@
 <template id="tt-flowWetMax">
   <div class="max-w-xs p-1.5 text-start">
     <p class="text-shark-300 text-sm font-medium">
-      Maximum flow rate for wet conditions, above which flow is considered fast.
+      Flowing water value where terrain reaches maximum wetness. Above this, additional water doesn't increase wetness
+      effect on talus angle.
     </p>
   </div>
 </template>
@@ -185,7 +215,8 @@
 <template id="tt-immerseMinX">
   <div class="max-w-xs p-1.5 text-start">
     <p class="text-shark-300 text-sm font-medium">
-      Minimum X-coordinate for immersion effects, below which objects are considered dry.
+      Minimum water depth (in height units) to begin immersion effects. Below this depth, terrain is considered only
+      surface-wet, not submerged.
     </p>
   </div>
 </template>
@@ -193,7 +224,8 @@
 <template id="tt-immerseMaxX">
   <div class="max-w-xs p-1.5 text-start">
     <p class="text-shark-300 text-sm font-medium">
-      Maximum X-coordinate for immersion effects, above which objects are considered fully immersed.
+      Water depth (in height units) where terrain becomes fully immersed. Above this depth, additional water doesn't
+      increase immersion effect on talus angle.
     </p>
   </div>
 </template>
@@ -201,7 +233,8 @@
 <template id="tt-thermalStrength">
   <div class="max-w-xs p-1.5 text-start">
     <p class="text-shark-300 text-sm font-medium">
-      Strength of the thermal effects applied to the terrain, influencing erosion and sediment transport.
+      Controls how much material moves during slope failures. Higher values cause larger landslides. Lower values
+      produce gradual creeping erosion.
     </p>
   </div>
 </template>
@@ -209,7 +242,8 @@
 <template id="tt-thermalMaxDeltaPerPass">
   <div class="max-w-xs p-1.5 text-start">
     <p class="text-shark-300 text-sm font-medium">
-      Maximum change in thermal value per pass, controlling the intensity of thermal effects.
+      Maximum terrain height change allowed per erosion step. Prevents unrealistic sudden collapses and maintains
+      numerical stability.
     </p>
   </div>
 </template>
@@ -217,15 +251,17 @@
 <template id="tt-margolusPasses">
   <div class="max-w-xs p-1.5 text-start">
     <p class="text-shark-300 text-sm font-medium">
-      Number of passes for the Margolus operator, affecting the diffusion and flow of the simulation.
-    </p>
+      Number of full water-settling cycles to run after the main erosion loop. Each cycle consists of four sub-steps
+      with different offsets to ensure water can flow across the entire grid. More cycles allow water to better settle
+      in large lakes and basins at the cost of performance.
   </div>
 </template>
 
 <template id="tt-margolusBinarySearchIterations">
   <div class="max-w-xs p-1.5 text-start">
     <p class="text-shark-300 text-sm font-medium">
-      Number of iterations for binary search in the Margolus operator, affecting precision and performance.
+      Iterations for computing still water equilibrium in 2x2 blocks. Higher values increase the precision of water
+      level calculations at the cost of performance. Lower values may cause water distribution artifacts.
     </p>
   </div>
 </template>

@@ -321,8 +321,8 @@ export async function generateTerrainTexture(data, config, scene, lutPath = '/eu
             
         } else {
             // Gradient adjustment factor (contrast-like control for the LUT)
-            const gradientContrast = 0.40; // Should just adjust the LUT itself but no time
-
+            const gradientContrast = 0.60; // Should just adjust the LUT itself but no time
+            
             // Use terrain LUT: x = terrain gradient, y = terrain height
             const normalizedHeight = (heightData[i] - minHeight) / heightRange;
             let normalizedGradient = gradientMagnitude[i]; // Already normalized
