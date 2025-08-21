@@ -18,8 +18,11 @@ export async function executeErosionSimulation(device, simulationState, config) 
     const wgX = Math.ceil(buffers.sizeX / WORKGROUP_SIZE);
     const wgY = Math.ceil(buffers.sizeY / WORKGROUP_SIZE);
 
-    const wgXMargolus = Math.ceil(buffers.sizeX / MARGOLUS_WG_X);
-    const wgYMargolus = Math.ceil(buffers.sizeY / MARGOLUS_WG_Y);
+    // Calculate number of logical blocks (threads), then workgroups
+    const numBlocksX = Math.ceil(buffers.sizeX / 2) + 1; // The ceil here is not really needed as the terrain size is always even
+    const numBlocksY = Math.ceil(buffers.sizeY / 2) + 1;
+    const wgXMargolus = Math.ceil(numBlocksX / MARGOLUS_WG_X);
+    const wgYMargolus = Math.ceil(numBlocksY / MARGOLUS_WG_Y);
 
     function dispatchCompute(encoder, pipeline, bindGroup, workgroupsX, workgroupsY, label = '') {
         const pass = encoder.beginComputePass({ label });

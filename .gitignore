@@ -27,3 +27,4 @@ dist-ssr
 *.csv
 *.pdf
 *.txt
+*old.wgsl

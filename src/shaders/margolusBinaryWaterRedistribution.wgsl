@@ -108,16 +108,14 @@ fn binary_search_water_level(
 
 @compute @workgroup_size(8,8)
 fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
-    if (gid.x >= params.size_x || gid.y >= params.size_y) { return; }
-
     let ux: u32 = gid.x;
     let uy: u32 = gid.y;
-    if (((ux - params.offset_x) & 1u) != 0u || ((uy - params.offset_y) & 1u) != 0u) {
-        return;
-    }
 
-    let bx = i32(gid.x);
-    let by = i32(gid.y);
+    // Each worker works on a 2x2 block now
+    // Overall ~4× fewer threads than
+    let bx = i32(gid.x) * 2 + i32(params.offset_x) - 1;
+    let by = i32(gid.y) * 2 + i32(params.offset_y) - 1;
+
     let mask = _precompute_mask(bx, by);
     let terrain_block = _load_block(vec2<i32>(bx, by), mask);
     let water_block = _load_water_block(vec2<i32>(bx, by), mask);
