@@ -4,11 +4,11 @@ export const config = {
     sizeY: 512,
 
     // Noise (fBm + domain warp)
-    octaves: 8,           // Number of octaves
-    zoom: 3.0,            // Base frequency zoom factor
-    persistence: 0.6,     // Amplitude scaling per octave (0.5-0.65 typical)
-    warpFactor: 0.5,      // Domain warp strength (0 disables warp)
-    seed: 42,             // Seed for noise
+    octaves: 8,            // Number of octaves
+    zoom: 3.0,             // Base frequency zoom factor
+    persistence: 0.6,      // Amplitude scaling per octave (0.5-0.65 typical)
+    warpFactor: 0.03,      // Domain warp strength (0 disables warp)
+    seed: 42,              // Seed for noise
     // If you want erosion PRNG to match noise seed, set randomSeed = seed
     randomSeed: 42,
 

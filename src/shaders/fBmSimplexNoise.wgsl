@@ -105,10 +105,17 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     // Add seed offset to coords
     var p = vec2f(nx, ny) + vec2f(params.seed * 43.0, params.seed * 17.0);
 
+    // Generate a proper 2D vector field for the warp
+    // Sample noise at two different locations to get independent x and y components.
+    let q = p * 2.0; // A different scale for the flow field
+    let warp_x = simplexNoise2(q + vec2f(5.2, 1.3));
+    let warp_y = simplexNoise2(q + vec2f(1.7, 8.3));
+
+    let warp_vec = vec2f(warp_x, warp_y); // If I need to return it later on
+
     // --- Domain warping ---
     if (params.warp_factor != 0.0) {
-        let warp = simplexNoise2(p * 1.7 + params.seed) * 0.1;
-        p = p + vec2f(warp) * params.warp_factor;
+        p = p + warp_vec * params.warp_factor;
     }
 
     // Generate height using simplified fBm
