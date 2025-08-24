@@ -4,11 +4,33 @@
  * @returns {Object} All created bind group layouts
  */
 export function createBindGroupLayouts(device) {
-    // fBm Simplex Noise (with domain warp)
+    // fBm Simplex Noise (with domain warp) - now generates both heightmap AND JFA seeds
     const fBmSimplexNoiseLayout = device.createBindGroupLayout({
         entries: [
             { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: "uniform" } },
-            { binding: 1, visibility: GPUShaderStage.COMPUTE, storageTexture: { access: "write-only", format: "rgba32float", viewDimension: "2d" } }
+            { binding: 1, visibility: GPUShaderStage.COMPUTE, storageTexture: { access: "write-only", format: "rgba32float", viewDimension: "2d" } }, // heightmap output
+            { binding: 2, visibility: GPUShaderStage.COMPUTE, storageTexture: { access: "write-only", format: "rgba32float", viewDimension: "2d" } }  // JFA seed output
+        ]
+    });
+
+    // JFA Algorithm Layout
+    const jfaLayout = device.createBindGroupLayout({
+        entries: [
+            { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: "uniform" } }, // JFA params
+            { binding: 1, visibility: GPUShaderStage.COMPUTE, storageTexture: { access: "read-only", format: "rgba32float", viewDimension: "2d" } }, // input texture
+            { binding: 2, visibility: GPUShaderStage.COMPUTE, storageTexture: { access: "write-only", format: "rgba32float", viewDimension: "2d" } }, // output texture
+            { binding: 3, visibility: GPUShaderStage.COMPUTE, buffer: { type: "storage" } } // atomic max buffer
+        ]
+    });
+
+    // Blend Layout (heightmap + distance field -> final terrain)
+    const blendLayout = device.createBindGroupLayout({
+        entries: [
+            { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: "uniform" } }, // BlendParams
+            { binding: 1, visibility: GPUShaderStage.COMPUTE, storageTexture: { access: "read-only", format: "rgba32float", viewDimension: "2d" } }, // heightmap texture
+            { binding: 2, visibility: GPUShaderStage.COMPUTE, storageTexture: { access: "read-only", format: "rgba32float", viewDimension: "2d" } }, // distance texture
+            { binding: 3, visibility: GPUShaderStage.COMPUTE, storageTexture: { access: "write-only", format: "rgba32float", viewDimension: "2d" } }, // output texture (changed to rgba32float)
+            { binding: 4, visibility: GPUShaderStage.COMPUTE, buffer: { type: "read-only-storage" } } // max buffer (read-only)
         ]
     });
 
@@ -57,6 +79,8 @@ export function createBindGroupLayouts(device) {
 
     return {
         fBmSimplexNoiseLayout,
+        jfaLayout,
+        blendLayout,
         erosionPingPongFD8Layout,
         stillWaterRedistributionLayout,
         thermalErosionLayout,

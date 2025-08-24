@@ -105,13 +105,22 @@ export async function initializeScene(heightData, flowingWater, stillWater, widt
     }
 }
 
-function createHeightmapMesh(name, scene, heightData, width, height, heightScale = 5, heightOffset = 4) {
+// Export the engine and scene for external access
+export function getBabylonEngine() {
+    return engine;
+}
+
+export function getBabylonScene() {
+    return scene;
+}
+
+function createHeightmapMesh(name, scene, heightData, width, height, heightScale = 5, heightOffset = -1) {
     const mesh = new Mesh(name, scene);
     updateHeightmapMesh(mesh, heightData, width, height, heightScale, heightOffset);
     return mesh;
 }
 
-function updateHeightmapMesh(mesh, heightData, width, height, heightScale = 5, heightOffset = 4) {
+function updateHeightmapMesh(mesh, heightData, width, height, heightScale = 5, heightOffset = -1) {
     const positions = [];
     const indices = [];
     const normals = [];

@@ -6,12 +6,46 @@
  * @returns {Object} All created bind groups
  */
 export function initBindGroups(device, buffers, layouts) {
-    // Noise (fBm + domain warp) → noiseTex
-    const fBmSimplexNoiseBindGroup = device.createBindGroup({
+    // Noise generation (fBm + domain warp + JFA seed) → noiseTex + jfaSeedTex
+    const fBmSimplexNoiseThresholdedBindGroup = device.createBindGroup({
         layout: layouts.fBmSimplexNoiseLayout,
         entries: [
             { binding: 0, resource: { buffer: buffers.noiseParamsBuffer } },
-            { binding: 1, resource: buffers.noiseTex.createView() }
+            { binding: 1, resource: buffers.noiseTex.createView() },
+            { binding: 2, resource: buffers.jfaSeedTex.createView() }
+        ]
+    });
+
+    // JFA bind groups (ping-pong)
+    const jfaBindGroupPingToPong = device.createBindGroup({
+        layout: layouts.jfaLayout,
+        entries: [
+            { binding: 0, resource: { buffer: buffers.jfaParamsBuffer } },
+            { binding: 1, resource: buffers.jfaTexPing.createView() },
+            { binding: 2, resource: buffers.jfaTexPong.createView() },
+            { binding: 3, resource: { buffer: buffers.jfaMaxBuffer } }
+        ]
+    });
+
+    const jfaBindGroupPongToPing = device.createBindGroup({
+        layout: layouts.jfaLayout,
+        entries: [
+            { binding: 0, resource: { buffer: buffers.jfaParamsBuffer } },
+            { binding: 1, resource: buffers.jfaTexPong.createView() },
+            { binding: 2, resource: buffers.jfaTexPing.createView() },
+            { binding: 3, resource: { buffer: buffers.jfaMaxBuffer } }
+        ]
+    });
+
+    // Blend bind group (heightmap + distance field → final terrain)
+    const blendBindGroup = device.createBindGroup({
+        layout: layouts.blendLayout,
+        entries: [
+            { binding: 0, resource: { buffer: buffers.blendParamsBuffer } },
+            { binding: 1, resource: buffers.noiseTex.createView() },
+            { binding: 2, resource: buffers.jfaTexPing.createView() }, // Final JFA result will be in ping
+            { binding: 3, resource: buffers.blendedTerrainTex.createView() },
+            { binding: 4, resource: { buffer: buffers.jfaMaxBuffer } }
         ]
     });
 
@@ -56,7 +90,6 @@ export function initBindGroups(device, buffers, layouts) {
         ]
     });
 
-    // (final pass)
     // Margolus Binary Water Redistribution Ping → Pong
     // Read: terrainTexPing, waterTexPing
     // Write: waterTexPong
@@ -67,13 +100,13 @@ export function initBindGroups(device, buffers, layouts) {
             { binding: 1, resource: buffers.terrainTexPing.createView() },
             { binding: 2, resource: buffers.waterTexPing.createView() },
             { binding: 3, resource: buffers.waterTexPong.createView() },
-            { binding: 4, resource: { buffer: buffers.stillWaterParamsBuffer } }, // add factor
+            { binding: 4, resource: { buffer: buffers.stillWaterParamsBuffer } },
         ],
     });
 
     // Margolus Binary Water Redistribution Pong → Ping
     // Read: terrainTexPing, waterTexPong
-    // Write: waterTexPong
+    // Write: waterTexPing
     const margolusBindGroupReverse = device.createBindGroup({
         layout: layouts.margolusBinaryWaterRedistributionLayout,
         entries: [
@@ -81,12 +114,15 @@ export function initBindGroups(device, buffers, layouts) {
             { binding: 1, resource: buffers.terrainTexPing.createView() },
             { binding: 2, resource: buffers.waterTexPong.createView() },
             { binding: 3, resource: buffers.waterTexPing.createView() },
-            { binding: 4, resource: { buffer: buffers.stillWaterParamsBuffer } }, // add factor
+            { binding: 4, resource: { buffer: buffers.stillWaterParamsBuffer } },
         ],
     });
 
     return {
-        fBmSimplexNoiseBindGroup,
+        fBmSimplexNoiseThresholdedBindGroup,
+        jfaBindGroupPingToPong,
+        jfaBindGroupPongToPing,
+        blendBindGroup,
         erosionBindGroup,
         stillWaterRedistributionBindGroup,
         thermalErosionBindGroup,

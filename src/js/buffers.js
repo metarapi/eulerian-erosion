@@ -17,6 +17,13 @@ export async function initBuffers(device, config) {
         warpFactor = 0.5,
         seed = 42,
 
+        // Blend parameters
+        heightmapWeight = 0.33,
+        distanceWeight = 0.1,
+
+        // JFA parameters
+        jfaThreshold = 0.0,
+
         // Erosion control
         iterations = 1024,
 
@@ -121,8 +128,8 @@ export async function initBuffers(device, config) {
         device.queue.writeBuffer(thermalParamsBuffer, 0, buf);
     }
 
-    // Noise params (matches fBmSimplexNoiseWithDomainWarp.wgsl HeightmapParams)
-    // struct: u32 size_x, u32 size_y, u32 octaves, f32 zoom, f32 persistence, f32 seed, f32 warp_factor
+    // Noise params (matches fBmSimplexNoiseThresholdedForJFA.wgsl HeightmapParams)
+    // struct: u32 size_x, u32 size_y, u32 octaves, f32 zoom, f32 persistence, f32 seed, f32 warp_factor, f32 threshold
     // allocate 8*4 to keep 16-byte multiple
     {
         const buf = new ArrayBuffer(8 * 4);
@@ -135,12 +142,46 @@ export async function initBuffers(device, config) {
         v.setFloat32(o, persistence, true); o += 4;
         v.setFloat32(o, seed, true); o += 4;
         v.setFloat32(o, warpFactor, true); o += 4;
-        // pad 4 bytes
+        v.setFloat32(o, jfaThreshold, true);
         var noiseParamsBuffer = device.createBuffer({
             size: 8 * 4,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         });
         device.queue.writeBuffer(noiseParamsBuffer, 0, buf);
+    }
+
+    // JFA parameters
+    {
+        const buf = new ArrayBuffer(4 * 4);
+        const v = new DataView(buf);
+        let o = 0;
+        v.setInt32(o, 1, true); o += 4;             // stepSize (updated per pass)
+        v.setInt32(o, sizeX, true); o += 4;         // gridWidth
+        v.setInt32(o, sizeY, true); o += 4;         // gridHeight
+        v.setUint32(o, 0, true);                    // computeMax (1 for final pass, 0 for others)
+        var jfaParamsBuffer = device.createBuffer({
+            size: 4 * 4,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+        });
+        device.queue.writeBuffer(jfaParamsBuffer, 0, buf);
+    }
+
+    // BlendParams (matches blend.wgsl BlendParams)
+    // struct: f32 heightmap_weight, f32 distance_weight
+    // allocate 4*4 (two pads)
+    {
+        const buf = new ArrayBuffer(4 * 4);
+        const v = new DataView(buf);
+        let o = 0;
+        v.setFloat32(o, heightmapWeight, true); o += 4;
+        v.setFloat32(o, distanceWeight, true); o += 4;
+        v.setFloat32(o, 0.0, true); o += 4; // (pad)
+        v.setFloat32(o, 0.0, true); o += 4; // (pad)
+        var blendParamsBuffer = device.createBuffer({
+            size: 4 * 4,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+        });
+        device.queue.writeBuffer(blendParamsBuffer, 0, buf);
     }
 
     // Margolus params (binary search iterations internal to shader)
@@ -163,6 +204,15 @@ export async function initBuffers(device, config) {
         });
         device.queue.writeBuffer(margolusParamsBuffer, 0, buf);
     }
+
+    // Atomic max buffer for JFA distance normalization
+    var jfaMaxBuffer = device.createBuffer({
+        size: 4, // Single u32
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
+    });
+    // Initialize to 0
+    const zeroU32 = new Uint32Array([0]);
+    device.queue.writeBuffer(jfaMaxBuffer, 0, zeroU32);
 
     // --- Storage textures (single resolution) ---
     const terrainTexPing = device.createTexture({
@@ -193,6 +243,32 @@ export async function initBuffers(device, config) {
         usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST
     });
 
+    // JFA seed texture (stores seed positions and distances)
+    const jfaSeedTex = device.createTexture({
+        size: [sizeX, sizeY, 1],
+        format: 'rgba32float',
+        usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST
+    });
+
+    // JFA ping-pong textures for the algorithm
+    const jfaTexPing = device.createTexture({
+        size: [sizeX, sizeY, 1],
+        format: 'rgba32float',
+        usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST
+    });
+    const jfaTexPong = device.createTexture({
+        size: [sizeX, sizeY, 1],
+        format: 'rgba32float',
+        usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST
+    });
+
+    // Final blended terrain texture (result of heightmap + JFA blend)
+    const blendedTerrainTex = device.createTexture({
+        size: [sizeX, sizeY, 1],
+        format: 'rgba32float', // Changed from r32float to rgba32float
+        usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST
+    });
+
     return {
         // Uniform buffers
         erosionParamsBuffer,
@@ -200,16 +276,27 @@ export async function initBuffers(device, config) {
         thermalParamsBuffer,
         noiseParamsBuffer,
         margolusParamsBuffer,
+        jfaParamsBuffer,
+        blendParamsBuffer,
+
+        // Storage buffers
+        jfaMaxBuffer,
 
         // Storage textures
         noiseTex,
         terrainTexPing, terrainTexPong,
         waterTexPing, waterTexPong,
 
+        // JFA textures
+        jfaSeedTex,
+        jfaTexPing, jfaTexPong,
+        blendedTerrainTex,
+
         // For convenience (used by the simulation loop)
         sizeX, sizeY,
         iterations,
-        margolusPasses
+        margolusPasses,
+        jfaThreshold
     };
 }
 

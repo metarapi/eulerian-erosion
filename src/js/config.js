@@ -5,12 +5,19 @@ export const config = {
 
     // Noise (fBm + domain warp)
     octaves: 8,            // Number of octaves
-    zoom: 3.0,             // Base frequency zoom factor
-    persistence: 0.6,      // Amplitude scaling per octave (0.5-0.65 typical)
-    warpFactor: 0.03,      // Domain warp strength (0 disables warp)
+    zoom: 0.99,             // Base frequency zoom factor
+    persistence: 0.55,     // Amplitude scaling per octave (0.5-0.65 typical)
+    warpFactor: 0.04,      // Domain warp strength (0 disables warp)
     seed: 42,              // Seed for noise
     // If you want erosion PRNG to match noise seed, set randomSeed = seed
     randomSeed: 42,
+
+    // Blend parameters
+    heightmapWeight: 0.80,
+    distanceWeight: 0.20,
+
+    // JFA parameters
+    jfaThreshold: 0.45,
 
     // Erosion loop (one “iteration” is the triplet: Hydraulic -> Redistribution -> Thermal)
     iterations: 1024,
@@ -21,7 +28,7 @@ export const config = {
     evapRate: 0.001,
     waterHeightFactor: 0.001,
     stillWaterRelaxation: 0.3,
-    spawnDensity: 0.05,
+    spawnDensity: 0.10,
     flowDepthWeight: 0.25,   // fraction of flowing water added to depth
     shearShallow: 5e-7,      // onset
     shearDeep: 5e-6,         // full strength

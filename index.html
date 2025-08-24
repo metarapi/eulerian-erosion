@@ -105,7 +105,7 @@
           </div>
 
           <!-- Hydraulic Erosion -->
-          <div x-data="{ open: true }" class="bg-woodsmoke-800 p-2 rounded-xl shadow-sm border border-woodsmoke-700 space-y-2">
+          <div x-data="{ open: false }" class="bg-woodsmoke-800 p-2 rounded-xl shadow-sm border border-woodsmoke-700 space-y-2">
             <div class="flex items-center justify-between">
               <span class="label-text text-lg font-light text-spray-50"
               :class="open ? 'text-spray-50' : 'text-woodsmoke-200'"
@@ -294,7 +294,7 @@
                   Value: <span x-text="octaves"></span>
                 </div>
               </div>
-              <div x-data="{ zoom: 3 }" class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-20%] motion-opacity-in-[0%] motion-duration-75 motion-delay-100 motion-ease-out">
+              <div x-data="{ zoom: 1.3 }" class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-20%] motion-opacity-in-[0%] motion-duration-75 motion-delay-100 motion-ease-out">
                 <!-- Zoom -->
                 <div class="flex flex-row items-center justify-between">
                   <span class="label-text text-base font-ultralight block mb-2 text-shark-100">Zoom</span>
@@ -305,9 +305,9 @@
                     <i class="text-sm bi bi-info-square"></i>
                   </button>
                 </div>
-                <input id="zoom" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]" min="1" max="100" step="1" x-model="zoom" />
+                <input id="zoom" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]" min="0.01" max="10" step="0.01" x-model="zoom" />
                 <div class="text-xs text-shark-400 text-right">
-                  Value: <span x-text="zoom"></span>
+                  Value: <span x-text="Number(zoom).toFixed(2)"></span>
                 </div>
               </div>
               <div x-data="{ persistence: 0.6 }" class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-30%] motion-opacity-in-[0%] motion-duration-75 motion-delay-150 motion-ease-out">
@@ -356,6 +356,56 @@
                 <input id="seed" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]" min="1" max="100" step="1" x-model="seed" />
                 <div class="text-xs text-shark-400 text-right">
                   Value: <span x-text="seed"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- JFA Blending Parameters -->
+          <div x-data="{ open: false, jfaThreshold: 0.5, blendFactor: 0.33 }" class="bg-woodsmoke-800 p-2 rounded-xl shadow-sm border border-woodsmoke-700 space-y-2">
+            <div class="flex items-center justify-between">
+              <span 
+                class="label-text text-lg font-light text-spray-50"
+                :class="open ? 'text-spray-50' : 'text-woodsmoke-200'"
+              >JFA Blending Parameters</span>
+              <label class="ml-5 flex flex-col items-center text-sm">
+                <input type="checkbox" class="switch switch-outline checked:text-spray-500 checked:border-spray-400 checked:bg-woodsmoke-800 hover:checked:bg-woodsmoke-800" x-model="open" />
+                <span class="label-text text-xs font-ultralight text-woodsmoke-400">Show</span>
+              </label>
+            </div>
+            <div x-show="open" class="space-y-2">
+              <!-- JFA Threshold -->
+              <div class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-10%] motion-opacity-in-[0%] motion-duration-75 motion-delay-50 motion-ease-out">
+                <div class="flex flex-row items-center justify-between">
+                  <span class="label-text text-base font-ultralight block mb-2 text-shark-100">JFA Threshold</span>
+                  <button type="button"
+                          class="text-sharklite-400 hover:text-white transition-colors p-2"
+                          data-tooltip="jfaThreshold"
+                          aria-label="About JFA threshold">
+                    <i class="text-sm bi bi-info-square"></i>
+                  </button>
+                </div>
+                <input id="jfaThreshold" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]"
+                  min="0" max="1" step="0.01" x-model="jfaThreshold" />
+                <div class="text-xs text-shark-400 text-right">
+                  Value: <span x-text="Number(jfaThreshold).toFixed(2)"></span>
+                </div>
+              </div>
+              <!-- Blend Factor -->
+              <div class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700 motion-child motion-scale-in-[0.85] motion-translate-y-in-[-20%] motion-opacity-in-[0%] motion-duration-75 motion-delay-100 motion-ease-out">
+                <div class="flex flex-row items-center justify-between">
+                  <span class="label-text text-base font-ultralight block mb-2 text-shark-100">Blend Factor</span>
+                  <button type="button"
+                          class="text-sharklite-400 hover:text-white transition-colors p-2"
+                          data-tooltip="blendFactor"
+                          aria-label="About blend factor">
+                    <i class="text-sm bi bi-info-square"></i>
+                  </button>
+                </div>
+                <input id="blendFactor" type="range" class="p-1 range [--range-color:theme(colors.spray.400)]"
+                  min="0" max="1" step="0.01" x-model="blendFactor" />
+                <div class="text-xs text-shark-400 text-right">
+                  Value: <span x-text="Number(blendFactor).toFixed(2)"></span>
                 </div>
               </div>
             </div>
@@ -619,6 +669,16 @@
                   Value: <span x-text="margolusBinarySearchIterations"></span>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <div class="bg-woodsmoke-800 p-1 rounded-xl shadow-sm space-y-2 border border-woodsmoke-700">
+            <div class="flex flex-row gap-2 p-0.5">
+              <button type="button" id="saveCanvasBtn"
+                class="btn flex-1 border-2 border-spray-300 text-spray-300 bg-transparent hover:bg-spray-300 hover:text-woodsmoke-950 p-1 text-lg font-ultralight rounded shadow">
+                <span id="runSimulationIcon" class="ti ti-screenshot mr-2"></span>
+                Save Screenshot
+              </button>
             </div>
           </div>
 

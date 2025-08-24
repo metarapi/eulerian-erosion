@@ -11,10 +11,21 @@ export async function initPipelines(device) {
     const layouts = createBindGroupLayouts(device);
 
     // Shader modules
-    const fBmSimplexNoiseModule = device.createShaderModule({
-        code: shaders.fBmSimplexNoise ?? shaders.fBmSimplexNoiseWithDomainWarp,
-        label: 'fBmSimplexNoiseModule'
+    const fBmSimplexNoiseThresholdedModule = device.createShaderModule({
+        code: shaders.fBmSimplexNoiseThresholdedForJFA,
+        label: 'fBmSimplexNoiseThresholdedModule'
     });
+    
+    const jfaWithAtomicMaxModule = device.createShaderModule({
+        code: shaders.JFAwithAtomicMax,
+        label: 'jfaWithAtomicMaxModule'
+    });
+    
+    const blendWithNormalizeModule = device.createShaderModule({
+        code: shaders.blendWithNormalize,
+        label: 'blendWithNormalizeModule'
+    });
+
     const erosionPingPongFD8Module = device.createShaderModule({
         code: shaders.erosionPingPongFD8,
         label: 'erosionPingPongFD8Module'
@@ -33,9 +44,19 @@ export async function initPipelines(device) {
     });
 
     // Pipelines
-    const fBmSimplexNoisePipeline = device.createComputePipeline({
+    const fBmSimplexNoiseThresholdedPipeline = device.createComputePipeline({
         layout: device.createPipelineLayout({ bindGroupLayouts: [layouts.fBmSimplexNoiseLayout] }),
-        compute: { module: fBmSimplexNoiseModule, entryPoint: 'main' }
+        compute: { module: fBmSimplexNoiseThresholdedModule, entryPoint: 'main' }
+    });
+
+    const jfaPipeline = device.createComputePipeline({
+        layout: device.createPipelineLayout({ bindGroupLayouts: [layouts.jfaLayout] }),
+        compute: { module: jfaWithAtomicMaxModule, entryPoint: 'main' }
+    });
+
+    const blendPipeline = device.createComputePipeline({
+        layout: device.createPipelineLayout({ bindGroupLayouts: [layouts.blendLayout] }),
+        compute: { module: blendWithNormalizeModule, entryPoint: 'main' }
     });
 
     const erosionPingPongFD8Pipeline = device.createComputePipeline({
@@ -62,7 +83,9 @@ export async function initPipelines(device) {
     margolusBinaryWaterRedistributionPipeline.workgroupSize = { x: 8, y: 8 };
 
     return {
-        fBmSimplexNoisePipeline,
+        fBmSimplexNoiseThresholdedPipeline,
+        jfaPipeline,
+        blendPipeline,
         erosionPingPongFD8Pipeline,
         stillWaterRedistributionPipeline,
         thermalErosionPipeline,

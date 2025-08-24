@@ -1,5 +1,6 @@
 // Simplified UI wiring: map DOM inputs -> config object, sync/reset utilities.
 import { config, defaultConfig } from './config.js';
+import { saveCanvasAsPNG } from './screenshot.js';
 
 // Small helper to simulate user input (keeps Alpine/DOM in sync)
 function mimicUserInput(inputElement, value) {
@@ -40,6 +41,10 @@ const CONTROL_MAP = {
     warpFactor: 'warpFactor',
     seed: 'seed',
 
+    // JFA blending
+    jfaThreshold: 'jfaThreshold',
+    blendFactor: 'blendFactor', // special handling - maps to heightmapWeight/distanceWeight
+
     // thermal (advanced)
     talusWet: 'talusWet',
     talusImmersed: 'talusImmersed',
@@ -66,6 +71,21 @@ const MAP_SIZE_TABLE = {
     66: 1024,
     99: 2048
 };
+
+// Helper function to update blend weights from blend factor
+function updateBlendWeights(blendFactor) {
+    // blendFactor: 0.0 = all heightmap, 1.0 = all distance field
+    config.distanceWeight = blendFactor;
+    config.heightmapWeight = 1.0 - blendFactor;
+    console.debug(`Blend updated: heightmapWeight=${config.heightmapWeight.toFixed(3)}, distanceWeight=${config.distanceWeight.toFixed(3)}`);
+}
+
+// Helper function to get blend factor from current weights
+function getBlendFactorFromWeights() {
+    const total = config.heightmapWeight + config.distanceWeight;
+    if (total <= 0) return 0.5; // fallback
+    return config.distanceWeight / total;
+}
 
 function setupControls() {
     Object.keys(CONTROL_MAP).forEach(id => {
@@ -99,6 +119,21 @@ function setupControls() {
             return;
         }
 
+        // Special handling for blend factor
+        if (id === 'blendFactor') {
+            // Initialize with current blend factor from weights
+            const currentBlendFactor = getBlendFactorFromWeights();
+            mimicUserInput(el, String(currentBlendFactor));
+
+            el.addEventListener('input', (e) => {
+                const blendFactor = parseFloat(e.target.value);
+                if (Number.isFinite(blendFactor)) {
+                    updateBlendWeights(blendFactor);
+                }
+            });
+            return;
+        }        
+
         // initialize element with current config
         const key = CONTROL_MAP[id];
         if (config.hasOwnProperty(key)) {
@@ -131,12 +166,16 @@ function setupControls() {
 function setupButtons(onRunSimulation, onResetSimulation) {
     const runBtn = document.getElementById('runSimulationBtn');
     const resetBtn = document.getElementById('resetSimulationBtn');
+    const saveBtn = document.getElementById('saveCanvasBtn');
 
     if (runBtn) runBtn.addEventListener('click', () => { if (onRunSimulation) onRunSimulation(getConfig()); });
     if (resetBtn) resetBtn.addEventListener('click', () => {
         resetConfigToDefault();
         if (onResetSimulation) onResetSimulation();
     });
+
+    // Add save functionality - now using imported function
+    if (saveBtn) saveBtn.addEventListener('click', () => saveCanvasAsPNG());
 }
 
 function resetConfigToDefault() {
@@ -156,6 +195,14 @@ function syncAllUIWithConfig() {
         const el = document.getElementById(id);
         const key = CONTROL_MAP[id];
         if (!el) return;
+
+        // Special handling for blend factor
+        if (id === 'blendFactor') {
+            const currentBlendFactor = getBlendFactorFromWeights();
+            mimicUserInput(el, String(currentBlendFactor.toFixed(2)));
+            return;
+        }
+
         if (!config.hasOwnProperty(key)) return;
         mimicUserInput(el, String(config[key]));
     });
@@ -179,7 +226,22 @@ function syncAllUIWithConfig() {
 }
 
 function getConfig() { return { ...config }; }
-function updateConfig(updates) { Object.assign(config, updates); syncAllUIWithConfig(); }
+
+function updateConfig(updates) { 
+    Object.assign(config, updates); 
+    
+    // If heightmapWeight or distanceWeight were updated, sync the blend factor slider
+    if (updates.hasOwnProperty('heightmapWeight') || updates.hasOwnProperty('distanceWeight')) {
+        const blendEl = document.getElementById('blendFactor');
+        if (blendEl) {
+            const currentBlendFactor = getBlendFactorFromWeights();
+            mimicUserInput(blendEl, String(currentBlendFactor.toFixed(2)));
+        }
+    }
+    
+    syncAllUIWithConfig(); 
+}
+
 function logConfig() { console.log('config', getConfig()); }
 
 // Initialization
@@ -195,14 +257,15 @@ function initializeConfigUI(onRunSimulation = null, onResetSimulation = null) {
             window.getConfig = getConfig;
             window.updateConfig = updateConfig;
             window.logConfig = logConfig;
+            window.updateBlendWeights = updateBlendWeights; // expose for debugging
 
             console.log('UI initialized');
         }, 50);
     });
 }
 
-// auto-init in case module loaded directly
-initializeConfigUI();
+// auto-init in case module loaded directly (already done in main)
+// initializeConfigUI();
 
 // exports
 export {
@@ -210,5 +273,6 @@ export {
     getConfig,
     updateConfig,
     resetConfigToDefault,
-    logConfig
+    logConfig,
+    updateBlendWeights
 };

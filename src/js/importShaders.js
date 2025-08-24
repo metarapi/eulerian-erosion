@@ -1,12 +1,15 @@
 export async function getShaders() {
     const shaderPaths = [
         // Compute shaders
-        "fBmSimplexNoise",
+        "fBmSimplexNoise", // old
+        "fBmSimplexNoiseThresholdedForJFA",
         "erosionPingPongFD8",
         "stillWaterRedistribution",
         "thermalErosion",
-        "margolusBinaryWaterRedistribution"
-        // Vertex and fragment
+        "margolusBinaryWaterRedistribution",
+        "JFA", // Jump flood algorithm (not used)
+        "JFAwithAtomicMax",
+        "blendWithNormalize"
     ];
 
     // Get the base URL for shaders based on environment

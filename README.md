@@ -12,13 +12,26 @@ A high-performance WebGPU-based hydraulic erosion simulation that combines multi
 -   **Moisture-Aware Thermal Erosion**: The stability of terrain (angle of repose) is dynamically adjusted based on its moisture level, considering surface wetness from flowing water and full immersion in still water.
 -   **Two-Stage Water Redistribution**: A novel combination of a continuous, relaxed redistribution during erosion and a final, mass-conserving equilibration step using a Margolus neighborhood binary search.
 -   **Procedural Terrain Generation**: Generates initial landscapes using GPU-accelerated, domain-warped fractal Brownian motion (fBm).
+-   **Mountain Chain Synthesis via JFA Blending** (new): Thresholded noise produces seed “ridge nuclei”; a Jump Flood Algorithm builds a distance field whose normalized result is blended with the original noise to create coherent ridge / valley belts. A blend factor lets you interpolate between organic noise and structured mountain chains.
+-   **Atomic-Reduced Normalization**: A single atomic max reduction during the final JFA pass provides a global distance scale for stable, resolution‑independent blending.
 
 ## How It Works
 
 The simulation is a multi-stage process orchestrated entirely on the GPU.
 
-### 1. Terrain Generation
-An initial heightmap is generated using domain-warped Simplex noise. This creates natural-looking terrain with varied features, controlled by parameters like octaves, persistence, and warp factor.
+### 1. Terrain Generation & Structural Preprocessing (New)
+1.  **Thresholded Domain-Warped fBm** (`fBmSimplexNoiseThresholdedForJFA.wgsl`)  
+    - Produces both a base heightmap (0–1) and seed points where height exceeds `jfaThreshold`.
+    - Seeds encode their own (x,y,height) and initialize distance α with a large sentinel elsewhere.
+2.  **Jump Flood Algorithm (JFA)** (`JFAwithAtomicMax.wgsl`)  
+    - Propagates nearest-seed information in O(log N) passes with decreasing step sizes.
+    - Final pass performs a workgroup reduction + global `atomicMax` to capture maximum Euclidean distance (Q16.16 fixed-point) for later normalization.
+3.  **Height / Distance Blending** (`blendWithNormalize.wgsl`)  
+    - Normalizes the distance field using the recorded max.
+    - Inverts the raw noise (optional stylistic emphasis) and linearly blends with the normalized distance:
+      `final = mix(invertedHeight, distanceNorm, blendFactor)`
+    - `blendFactor = 0` → pure organic noise; `1` → fully chain‑structured terrain.
+4.  **Result Copy** → becomes the initial terrain fed into erosion.
 
 ### 2. The Erosion Loop
 The simulation runs for a specified number of iterations. Each iteration consists of three main steps that are executed in sequence:
@@ -47,21 +60,48 @@ After the main erosion loop completes, a final set of passes is run to ensure al
 
 ## Pipeline Overview
 
-1.  **Initialization**:
-    -   A domain-warped fBm noise texture is generated (`fBmSimplexNoise.wgsl`).
-    -   This is copied to the initial terrain texture. Water textures are initialized to zero.
-
+1.  **Initialization / Structural Preprocessing**:
+    - Thresholded, domain-warped fBm generation (height + JFA seeds).
+    - Jump Flood passes (ping‑pong) with final distance max reduction.
+    - Blending of normalized distance field with original noise via `blendFactor`.
+    - Copy blended terrain to erosion input.
 2.  **Erosion Loop** (runs for `iterations`):
-    -   **Pass 1**: Hydraulic Erosion (`erosionPingPongFD8.wgsl`)
-    -   **Pass 2**: Still Water Redistribution (`stillWaterRedistribution.wgsl`)
-    -   **Pass 3**: Thermal Erosion (`thermalErosion.wgsl`)
-    -   *Textures are ping-ponged between passes to use the output of one step as the input for the next.*
-
-3.  **Final Equilibration Loop** (runs for `margolusPasses`):
-    -   The `margolusBinaryWaterRedistribution.wgsl` shader is dispatched four times per pass with different checkerboard offsets to process all cell boundaries.
-
+    - Pass 1: Hydraulic Erosion (`erosionPingPongFD8.wgsl`)
+    - Pass 2: Still Water Redistribution (`stillWaterRedistribution.wgsl`)
+    - Pass 3: Thermal Erosion (`thermalErosion.wgsl`)
+3.  **Final Equilibration Loop**:
+    - Margolus binary-search redistribution (`margolusBinaryWaterRedistribution.wgsl`)
 4.  **Readback & Visualization**:
-    -   The final terrain and water textures are copied from the GPU to the CPU for visualization with Babylon.js.
+    - Terrain + water staging buffers → Babylon.js.
+
+## Key Parameters
+
+A detailed tooltip is available for each parameter in the UI.
+
+-   **General**: `Resolution`, `Iterations`
+-   **Terrain Generation / Structure**: `octaves`, `zoom`, `persistence`, `warpFactor`, `seed`
+-   **Mountain Chain Blending (new)**:
+    - `jfaThreshold`: Controls density of ridge seeds (higher → sparser, more dominant chains).
+    - `blendFactor`: 0 = pure noise; 1 = fully distance-structured ridges.
+-   **Hydraulic Erosion**: `spawnCycles`, `spawnDensity`, `evapRate`, `depositionRate`, `flowDepthWeight`, `shearShallow`, `shearDeep`
+-   **Water System**: `waterHeightFactor`, `stillWaterRelaxation`
+-   **Thermal Erosion**: `thermalStrength`, `maxDeltaPerPass`, moisture + elevation talus angles
+-   **Final Equilibration**: `margolusPasses`, `margolusBinarySearchIterations`
+
+## Core Shaders
+
+-   `fBmSimplexNoiseThresholdedForJFA.wgsl`: Domain-warped fBm + ridge seed thresholding.
+-   `JFAwithAtomicMax.wgsl`: Jump Flood nearest-seed propagation + atomic max distance reduction.
+-   `blendWithNormalize.wgsl`: Normalizes distance (using reduced max) and blends with noise.
+-   `erosionPingPongFD8.wgsl`: Hydraulic erosion & sediment transport.
+-   `stillWaterRedistribution.wgsl`: Iterative intra-loop settling.
+-   `thermalErosion.wgsl`: Moisture & elevation adaptive talus relaxation.
+-   `margolusBinaryWaterRedistribution.wgsl`: Mass-conserving still water equilibration.
+
+## Notes on JFA Normalization (New)
+
+- Distances are accumulated as float during propagation; only the maximum is quantized (Q16.16) for deterministic normalization.
+- Avoids an extra full reduction pass while keeping precision adequate for blending.
 
 ## Getting Started
 
@@ -81,25 +121,6 @@ Visit `http://localhost:5173` (or the port specified in your terminal).
 npm run build
 npm run preview
 ```
-
-## Key Parameters
-
-A detailed tooltip is available for each parameter in the UI.
-
--   **General**: `Resolution`, `Iterations`
--   **Hydraulic Erosion**: `spawnCycles`, `spawnDensity`, `evapRate`, `depositionRate`, `flowDepthWeight`, `shearShallow`, `shearDeep`
--   **Water System**: `waterHeightFactor`, `stillWaterRelaxation`
--   **Thermal Erosion**: `thermalStrength`, `maxDeltaPerPass`, and various moisture-based `talus` angles.
--   **Final Equilibration**: `margolusPasses`, `margolusBinarySearchIterations`
--   **Terrain Generation**: `octaves`, `zoom`, `persistence`, `warpFactor`, `seed`
-
-## Core Shaders
-
--   `fBmSimplexNoise.wgsl`: Procedural terrain generation.
--   `erosionPingPongFD8.wgsl`: The core hydraulic erosion and transport engine.
--   `stillWaterRedistribution.wgsl`: Intra-iteration water settling.
--   `thermalErosion.wgsl`: Moisture-aware thermal weathering.
--   `margolusBinaryWaterRedistribution.wgsl`: Final, mass-conserving water equilibration.
 
 ## Dependencies
 
